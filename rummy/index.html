@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
 
   <title>Rummy Scorecard</title>
 
@@ -11,9 +14,22 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Rummy" />
 
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icons/rummy-icon-1024.png" />
-  <link rel="stylesheet" href="rummy.css" />
+  <link rel="manifest" href="./manifest.json" />
+
+  <link
+    rel="apple-touch-icon"
+    sizes="1024x1024"
+    href="./icons/rummy-icon-1024.png"
+  />
+
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="1024x1024"
+    href="./icons/rummy-icon-1024.png"
+  />
+
+  <link rel="stylesheet" href="./rummy.css" />
 </head>
 
 <body>
@@ -58,7 +74,11 @@
 
     <section id="scoreScreen" class="score-screen hidden">
       <div id="tableScroller" class="table-scroller">
-        <table id="scoreTable" class="score-table" aria-label="Rummy scorecard"></table>
+        <table
+          id="scoreTable"
+          class="score-table"
+          aria-label="Rummy scorecard"
+        ></table>
       </div>
 
       <button
@@ -73,6 +93,6 @@
     </section>
   </main>
 
-  <script src="rummy.js"></script>
+  <script src="./rummy.js"></script>
 </body>
 </html>
