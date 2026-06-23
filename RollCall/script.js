@@ -25,6 +25,8 @@ const state = {
   players: [],
   usedCategoryIndexes: [],
   currentRound: null,
+  lastStandardRound: null,
+  doublesStreak: 0,
   timerSeconds: 60,
   timerId: null,
   phase: "setup"
@@ -196,18 +198,63 @@ function playRollSound() {
   }
 }
 
+function rollNonDoubles() {
+  let dieOne = randomDie();
+  let dieTwo = randomDie();
+  while (dieOne === dieTwo) dieTwo = randomDie();
+  return { dieOne, dieTwo };
+}
+
 function startRound() {
   clearTimer();
   state.phase = "rolling";
-  state.currentRound = {
-    dieOne: randomDie(),
-    dieTwo: randomDie(),
-    category: nextCategory(),
-    winnerId: null
-  };
 
-  categoryDisplay.textContent = state.currentRound.category;
-  categoryDisplay.classList.remove("revealed");
+  // The first playable round must establish a category and letter-count target.
+  // If the dice happen to match before that exists, roll again automatically.
+  let dieOne = randomDie();
+  let dieTwo = randomDie();
+  if (!state.lastStandardRound && dieOne === dieTwo) {
+    ({ dieOne, dieTwo } = rollNonDoubles());
+  }
+
+  const isDoubles = dieOne === dieTwo && Boolean(state.lastStandardRound);
+  let round;
+
+  if (isDoubles) {
+    state.doublesStreak += 1;
+    const multiplier = 2 ** state.doublesStreak;
+    round = {
+      dieOne,
+      dieTwo,
+      isDoubles: true,
+      multiplier,
+      category: state.lastStandardRound.category,
+      targetLetters: state.lastStandardRound.targetLetters,
+      basePoints: state.lastStandardRound.basePoints,
+      points: state.lastStandardRound.basePoints * multiplier,
+      winnerId: null
+    };
+  } else {
+    const category = nextCategory();
+    const basePoints = dieOne + dieTwo;
+    state.doublesStreak = 0;
+    state.lastStandardRound = { category, targetLetters: basePoints, basePoints };
+    round = {
+      dieOne,
+      dieTwo,
+      isDoubles: false,
+      multiplier: 1,
+      category,
+      targetLetters: basePoints,
+      basePoints,
+      points: basePoints,
+      winnerId: null
+    };
+  }
+
+  state.currentRound = round;
+  categoryDisplay.classList.remove("revealed", "doubles-display");
+  categoryDisplay.textContent = round.isDoubles ? `DOUBLES ×${round.multiplier}` : round.category;
   diceSummary.classList.remove("visible");
   rollingDice.classList.remove("settled", "rolling");
   void rollingDice.offsetWidth;
@@ -218,22 +265,28 @@ function startRound() {
   playRollSound();
 
   window.setTimeout(() => {
-    const { dieOne, dieTwo } = state.currentRound;
-    const total = dieOne + dieTwo;
-    renderDie(bigDieOne, dieOne);
-    renderDie(bigDieTwo, dieTwo);
-    renderDie(miniDieOne, dieOne);
-    renderDie(miniDieTwo, dieTwo);
-    diceTotal.textContent = total;
+    renderDie(bigDieOne, round.dieOne);
+    renderDie(bigDieTwo, round.dieTwo);
+    renderDie(miniDieOne, round.dieOne);
+    renderDie(miniDieTwo, round.dieTwo);
+    diceTotal.textContent = round.dieOne + round.dieTwo;
     rollingDice.classList.add("settled");
     diceSummary.classList.add("visible");
-    roundStatus.textContent = "Category";
+
+    if (round.isDoubles) {
+      categoryDisplay.classList.add("doubles-display");
+      roundStatus.textContent = `Doubles memory round — worth ${round.points} points`;
+    } else {
+      roundStatus.textContent = "Category";
+    }
     categoryDisplay.classList.add("revealed");
   }, 1900);
 
   window.setTimeout(() => {
     state.phase = "active";
-    roundStatus.textContent = "Find a word with exactly this many letters";
+    roundStatus.textContent = round.isDoubles
+      ? `Remember the last category and letter count — worth ${round.points} points`
+      : "Find a word with exactly this many letters";
     startTimer();
     renderPlayersBar();
   }, 3900);
@@ -262,7 +315,7 @@ function awardRound(playerId) {
   if (!player) return;
 
   clearTimer();
-  const points = state.currentRound.dieOne + state.currentRound.dieTwo;
+  const points = state.currentRound.points;
   player.score += points;
   state.currentRound.winnerId = player.id;
   state.phase = "round-over";
@@ -302,6 +355,8 @@ function startGame() {
   }
   state.players = namedPlayers;
   state.usedCategoryIndexes = [];
+  state.lastStandardRound = null;
+  state.doublesStreak = 0;
   state.players.forEach((player) => { player.score = 0; });
   newGameScreen.classList.add("hidden");
   winnerScreen.classList.add("hidden");
@@ -328,6 +383,8 @@ function resetToNewGame() {
   state.players.forEach((player) => { player.score = 0; });
   state.usedCategoryIndexes = [];
   state.currentRound = null;
+  state.lastStandardRound = null;
+  state.doublesStreak = 0;
   state.phase = "setup";
   categoryDisplay.classList.remove("revealed");
   diceSummary.classList.remove("visible");
