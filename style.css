@@ -1,113 +1,168 @@
-/* Global reset */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* Base page styling */
 html {
   font-size: 16px;
 }
 
 body {
-  min-height: 100vh;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
   font-family: Arial, Helvetica, sans-serif;
-  background: #f4f6f8;
-  color: #1f2933;
+  background: #071a33;
+  color: white;
   line-height: 1.6;
 }
 
-/* Top banner */
 header {
   width: 100%;
   padding: 2.25rem 1.5rem;
   text-align: center;
   background: #071a33;
-  color: white;
 }
 
-/* Name */
 header h1 {
+  color: white;
   font-family: "Times New Roman", Times, serif;
   font-size: clamp(2.5rem, 6vw, 5rem);
   font-weight: 400;
   letter-spacing: 0.02em;
+}
+
+header .established {
+  margin-top: -0.35rem;
   color: white;
-  margin: 0;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  line-height: 1;
 }
 
-/* Hide tagline for now */
-header p {
-  display: none;
+.site-stage {
+  position: relative;
+  min-height: 0;
+  width: 100%;
+  background: #071a33;
 }
 
-/* Main content container */
+.site-nav {
+  position: absolute;
+  top: 3rem;
+  left: clamp(1rem, 3vw, 3rem);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.nav-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-align: left;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.nav-button:hover {
+  color: white;
+}
+
+.nav-button.active {
+  color: white;
+}
+
 main {
-  width: min(100%, 1100px);
+  width: min(80vw, 1100px);
+  height: 100%;
   margin: 0 auto;
-  padding: 3rem 1.5rem;
+  overflow-y: auto;
+  padding: 3rem clamp(1.5rem, 5vw, 5rem);
+  background: rgba(59, 65, 73, 0.82);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Page sections */
-section {
-  margin-bottom: 3rem;
+.tab-panel {
+  display: none;
+  min-height: 100%;
 }
 
-/* Section headings */
+.tab-panel.active {
+  display: block;
+}
+
 section h2 {
-  font-size: clamp(1.5rem, 3vw, 2.25rem);
-  font-weight: 600;
   margin-bottom: 1rem;
-  color: #071a33;
+  color: white;
+  font-family: "Times New Roman", Times, serif;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  font-weight: 400;
 }
 
-/* Paragraphs */
 section p {
   max-width: 70ch;
-  color: #374151;
+  color: rgba(255, 255, 255, 0.84);
 }
 
-/* Project card */
 .project-card {
   width: 100%;
-  padding: 1.5rem;
   margin-top: 1rem;
-  background: white;
-  border: 1px solid #d9dee7;
-  border-radius: 1rem;
-  box-shadow: 0 18px 35px rgba(7, 26, 51, 0.08);
+  padding: 1.5rem;
+  background: rgba(7, 26, 51, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.13);
 }
 
 .project-card h3 {
-  font-size: 1.25rem;
   margin-bottom: 0.5rem;
-  color: #071a33;
+  color: white;
+  font-size: 1.25rem;
 }
 
 .project-card p {
-  color: #4b5563;
+  color: rgba(255, 255, 255, 0.78);
 }
 
-/* Mobile refinements */
-@media (max-width: 600px) {
-  header {
-    padding: 1.75rem 1rem;
+@media (max-width: 700px) {
+  body {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
   }
 
-  header h1 {
-    font-size: 2.5rem;
+  .site-stage {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .site-nav {
+    position: static;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 1rem;
+  }
+
+  .nav-button {
+    text-align: center;
   }
 
   main {
-    padding: 2rem 1rem;
-  }
-
-  section {
-    margin-bottom: 2.25rem;
-  }
-
-  .project-card {
-    padding: 1.25rem;
+    width: calc(100% - 2rem);
+    height: auto;
+    min-height: 70vh;
+    margin-bottom: 1rem;
+    overflow-y: visible;
+    padding: 2rem 1.5rem;
   }
 }

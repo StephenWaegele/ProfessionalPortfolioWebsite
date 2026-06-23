@@ -5,35 +5,52 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Stephen Waegele | Systems Engineer</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="script.js" defer></script>
 </head>
+
 <body>
   <header>
     <h1>Stephen Waegele</h1>
-    <p>Systems Engineering | Test Automation | Quality &amp; V&amp;V</p>
+    <p class="established">est. 1999</p>
   </header>
 
-  <main>
-    <section>
-      <h2>About</h2>
-      <p>
-        Systems engineering professional focused on requirements-based verification,
-        test automation, quality systems, and technical problem solving.
-      </p>
-    </section>
+  <div class="site-stage">
+    <nav class="site-nav" aria-label="Site navigation">
+      <button class="nav-button active" type="button" data-tab="about">
+        About
+      </button>
+      <button class="nav-button" type="button" data-tab="projects">
+        Projects
+      </button>
+      <button class="nav-button" type="button" data-tab="contact">
+        Contact
+      </button>
+    </nav>
 
-    <section>
-      <h2>Projects</h2>
-      <div class="project-card">
-        <h3>Robot Telemetry Test Automation Demo</h3>
-        <p>Python-based validation demo for simulated robot system data.</p>
-      </div>
-    </section>
+    <main>
+      <section id="about" class="tab-panel active">
+        <h2>About</h2>
+        <p>
+          Systems engineering professional focused on requirements-based verification,
+          test automation, quality systems, and technical problem solving.
+        </p>
+      </section>
 
-    <section>
-      <h2>Contact</h2>
-      <p>Email: stephen.waegele@gmail.com</p>
-      <p>LinkedIn: linkedin.com/in/stephenwaegele</p>
-    </section>
-  </main>
+      <section id="projects" class="tab-panel">
+        <h2>Projects</h2>
+
+        <div class="project-card">
+          <h3>Robot Telemetry Test Automation Demo</h3>
+          <p>Python-based validation demo for simulated robot system data.</p>
+        </div>
+      </section>
+
+      <section id="contact" class="tab-panel">
+        <h2>Contact</h2>
+        <p>Email: stephen.waegele@gmail.com</p>
+        <p>LinkedIn: linkedin.com/in/stephenwaegele</p>
+      </section>
+    </main>
+  </div>
 </body>
 </html>
