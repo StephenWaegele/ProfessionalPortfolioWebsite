@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Rummy" />
 
   <link rel="manifest" href="./manifest.json" />
-  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
   <link rel="icon" type="image/png" href="./apple-touch-icon.png" />
 
   <link rel="stylesheet" href="./rummy.css" />
@@ -34,34 +34,36 @@
       </button>
     </header>
 
-    <section class="score-screen">
-      <div id="tableScroller" class="table-scroller">
-        <table
-          id="scoreTable"
-          class="score-table"
-          aria-label="Rummy scorecard"
-        ></table>
-
+    <section id="scoreScreen" class="score-screen">
+      <div id="scoreWorkspace" class="score-workspace">
         <button
           id="addPlayerButton"
-          class="add-player-button"
+          class="side-add-button add-player-button"
           type="button"
           aria-label="Add player"
           title="Add player"
         >
           +
         </button>
-      </div>
 
-      <button
-        id="addRoundButton"
-        class="add-round-button"
-        type="button"
-        aria-label="Add round"
-        title="Add round"
-      >
-        +
-      </button>
+        <button
+          id="addRoundButton"
+          class="side-add-button add-round-button"
+          type="button"
+          aria-label="Add round"
+          title="Add round"
+        >
+          +
+        </button>
+
+        <div id="tableScroller" class="table-scroller">
+          <table
+            id="scoreTable"
+            class="score-table"
+            aria-label="Rummy scorecard"
+          ></table>
+        </div>
+      </div>
     </section>
   </main>
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "rummy-scorecard-v2";
+const CACHE_NAME = "rummy-scorecard-v4";
 
 const APP_FILES = [
   "./",
@@ -6,7 +6,7 @@ const APP_FILES = [
   "./rummy.css",
   "./rummy.js",
   "./manifest.json",
-  "./icons/rummy-icon-1024.png"
+  "./apple-touch-icon.png"
 ];
 
 self.addEventListener("install", (event) => {
@@ -32,23 +32,36 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") {
+  if (
+    event.request.method !== "GET" ||
+    new URL(event.request.url).origin !== self.location.origin
+  ) {
     return;
   }
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
 
-      return fetch(event.request).catch(() => {
-        if (event.request.mode === "navigate") {
-          return caches.match("./index.html");
-        }
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, copy);
+        });
 
-        return caches.match("./");
-      });
-    })
+        return response;
+      })
+      .catch(() =>
+        caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+
+          if (event.request.mode === "navigate") {
+            return caches.match("./index.html");
+          }
+
+          return caches.match("./");
+        })
+      )
   );
 });

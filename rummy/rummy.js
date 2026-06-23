@@ -1,7 +1,9 @@
-const STORAGE_KEY = "rummy-scorecard-current-game-v2";
+const STORAGE_KEY = "rummy-scorecard-current-game";
 
+const scoreWorkspace = document.getElementById("scoreWorkspace");
 const scoreTable = document.getElementById("scoreTable");
 const tableScroller = document.getElementById("tableScroller");
+
 const addPlayerButton = document.getElementById("addPlayerButton");
 const addRoundButton = document.getElementById("addRoundButton");
 const newGameButton = document.getElementById("newGameButton");
@@ -12,22 +14,25 @@ function createId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function createNewGame() {
-  const players = [
-    { id: createId(), name: "Player 1" },
-    { id: createId(), name: "Player 2" }
-  ];
-
+function createInitialGame() {
   return {
-    players,
-    rounds: [createBlankRound(players)]
+    players: [
+      { id: createId(), name: "Player 1" },
+      { id: createId(), name: "Player 2" }
+    ],
+    rounds: [
+      {
+        id: createId(),
+        scores: {}
+      }
+    ]
   };
 }
 
-function createBlankRound(players = game.players) {
+function createBlankRound() {
   const scores = {};
 
-  players.forEach((player) => {
+  game.players.forEach((player) => {
     scores[player.id] = "";
   });
 
@@ -42,7 +47,9 @@ function loadGame() {
     const saved = localStorage.getItem(STORAGE_KEY);
 
     if (!saved) {
-      return createNewGame();
+      const freshGame = createInitialGame();
+      freshGame.rounds[0] = createBlankRound();
+      return freshGame;
     }
 
     const parsed = JSON.parse(saved);
@@ -50,19 +57,45 @@ function loadGame() {
     if (
       !parsed ||
       !Array.isArray(parsed.players) ||
-      parsed.players.length < 1 ||
-      !Array.isArray(parsed.rounds)
+      !Array.isArray(parsed.rounds) ||
+      parsed.players.length === 0
     ) {
-      return createNewGame();
+      const freshGame = createInitialGame();
+      freshGame.rounds[0] = createBlankRound();
+      return freshGame;
     }
 
-    if (parsed.rounds.length === 0) {
-      parsed.rounds = [createBlankRound(parsed.players)];
-    }
+    parsed.players.forEach((player, index) => {
+      if (!player.id) {
+        player.id = createId();
+      }
+
+      if (!player.name) {
+        player.name = `Player ${index + 1}`;
+      }
+    });
+
+    parsed.rounds.forEach((round) => {
+      if (!round.id) {
+        round.id = createId();
+      }
+
+      if (!round.scores) {
+        round.scores = {};
+      }
+
+      parsed.players.forEach((player) => {
+        if (!(player.id in round.scores)) {
+          round.scores[player.id] = "";
+        }
+      });
+    });
 
     return parsed;
   } catch {
-    return createNewGame();
+    const freshGame = createInitialGame();
+    freshGame.rounds[0] = createBlankRound();
+    return freshGame;
   }
 }
 
@@ -70,27 +103,28 @@ function saveGame() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(game));
 }
 
+function normalizePlayerNames() {
+  game.players.forEach((player, index) => {
+    const name = player.name.trim();
+    player.name = name || `Player ${index + 1}`;
+  });
+}
+
 function getNextPlayerName() {
   return `Player ${game.players.length + 1}`;
 }
 
-function normalizePlayerNames() {
-  game.players.forEach((player, index) => {
-    const cleanedName = String(player.name || "").trim();
-    player.name = cleanedName || `Player ${index + 1}`;
-  });
-}
-
 function getPlayerTotal(playerId) {
   return game.rounds.reduce((sum, round) => {
-    const raw = String(round.scores[playerId] ?? "").trim();
+    const rawValue = String(round.scores[playerId] ?? "").trim();
 
-    if (raw === "") {
+    if (rawValue === "") {
       return sum;
     }
 
-    const value = Number(raw);
-    return Number.isFinite(value) ? sum + value : sum;
+    const parsedValue = Number(rawValue);
+
+    return Number.isFinite(parsedValue) ? sum + parsedValue : sum;
   }, 0);
 }
 
@@ -98,59 +132,52 @@ function formatTotal(total) {
   return Number.isInteger(total) ? String(total) : total.toFixed(1);
 }
 
-function updateTotalCells() {
-  game.players.forEach((player) => {
-    const totalCell = document.querySelector(
-      `[data-total-for="${player.id}"]`
-    );
-
-    if (totalCell) {
-      totalCell.textContent = formatTotal(getPlayerTotal(player.id));
-    }
-  });
-}
-
 function render() {
   normalizePlayerNames();
   saveGame();
+  renderScoreTable();
 
+  requestAnimationFrame(positionAddRoundButton);
+}
+
+function renderScoreTable() {
   scoreTable.innerHTML = "";
 
   const playerCount = game.players.length;
-  const tableViewportWidth = tableScroller.clientWidth || window.innerWidth - 32;
-  const roundColumnWidth = 58;
+  const scrollerWidth = tableScroller.clientWidth || window.innerWidth - 110;
+  const roundColumnWidth = 62;
 
   let playerColumnWidth;
 
   if (playerCount <= 4) {
     playerColumnWidth = Math.max(
-      72,
-      Math.floor((tableViewportWidth - roundColumnWidth) / playerCount)
+      74,
+      Math.floor((scrollerWidth - roundColumnWidth) / playerCount)
     );
   } else {
     playerColumnWidth = Math.max(
       76,
-      Math.floor((tableViewportWidth - roundColumnWidth) / 4.22)
+      Math.floor((scrollerWidth - roundColumnWidth) / 4.22)
     );
   }
 
   const tableWidth =
     playerCount <= 4
-      ? tableViewportWidth
+      ? scrollerWidth
       : roundColumnWidth + playerColumnWidth * playerCount;
 
   scoreTable.style.width = `${tableWidth}px`;
 
   const colgroup = document.createElement("colgroup");
 
-  const roundCol = document.createElement("col");
-  roundCol.style.width = `${roundColumnWidth}px`;
-  colgroup.append(roundCol);
+  const roundColumn = document.createElement("col");
+  roundColumn.style.width = `${roundColumnWidth}px`;
+  colgroup.append(roundColumn);
 
   game.players.forEach(() => {
-    const playerCol = document.createElement("col");
-    playerCol.style.width = `${playerColumnWidth}px`;
-    colgroup.append(playerCol);
+    const playerColumn = document.createElement("col");
+    playerColumn.style.width = `${playerColumnWidth}px`;
+    colgroup.append(playerColumn);
   });
 
   scoreTable.append(colgroup);
@@ -164,8 +191,7 @@ function render() {
   headerRow.append(roundHeading);
 
   game.players.forEach((player, index) => {
-    const playerHeader = document.createElement("th");
-    playerHeader.className = "player-header";
+    const header = document.createElement("th");
 
     const headerWrap = document.createElement("div");
     headerWrap.className = "player-header-wrap";
@@ -204,8 +230,8 @@ function render() {
       headerWrap.append(removePlayerButton);
     }
 
-    playerHeader.append(headerWrap);
-    headerRow.append(playerHeader);
+    header.append(headerWrap);
+    headerRow.append(header);
   });
 
   thead.append(headerRow);
@@ -215,6 +241,7 @@ function render() {
 
   game.rounds.forEach((round, roundIndex) => {
     const row = document.createElement("tr");
+    row.dataset.roundId = round.id;
 
     const roundCell = document.createElement("td");
     roundCell.className = "round-cell";
@@ -222,8 +249,8 @@ function render() {
     const roundNumberWrap = document.createElement("div");
     roundNumberWrap.className = "round-number-wrap";
 
-    const roundNumber = document.createElement("span");
-    roundNumber.textContent = roundIndex + 1;
+    const roundLabel = document.createElement("span");
+    roundLabel.textContent = roundIndex + 1;
 
     const deleteRoundButton = document.createElement("button");
     deleteRoundButton.className = "round-delete-button";
@@ -236,22 +263,17 @@ function render() {
 
     deleteRoundButton.addEventListener("click", () => {
       game.rounds.splice(roundIndex, 1);
-
-      if (game.rounds.length === 0) {
-        game.rounds.push(createBlankRound());
-      }
-
       render();
     });
 
-    roundNumberWrap.append(roundNumber);
+    roundNumberWrap.append(roundLabel);
     roundNumberWrap.append(deleteRoundButton);
     roundCell.append(roundNumberWrap);
     row.append(roundCell);
 
     game.players.forEach((player) => {
-      const scoreCell = document.createElement("td");
-      scoreCell.className = "score-cell";
+      const cell = document.createElement("td");
+      cell.className = "score-cell";
 
       const scoreInput = document.createElement("input");
       scoreInput.className = "score-input";
@@ -271,8 +293,8 @@ function render() {
         updateTotalCells();
       });
 
-      scoreCell.append(scoreInput);
-      row.append(scoreCell);
+      cell.append(scoreInput);
+      row.append(cell);
     });
 
     tbody.append(row);
@@ -299,31 +321,41 @@ function render() {
   scoreTable.append(tfoot);
 }
 
-function addPlayer() {
-  const newPlayer = {
-    id: createId(),
-    name: getNextPlayerName()
-  };
+function updateTotalCells() {
+  game.players.forEach((player) => {
+    const totalCell = document.querySelector(
+      `[data-total-for="${player.id}"]`
+    );
 
-  game.players.push(newPlayer);
-
-  game.rounds.forEach((round) => {
-    round.scores[newPlayer.id] = "";
-  });
-
-  render();
-
-  requestAnimationFrame(() => {
-    const nameInputs = document.querySelectorAll(".header-name-input");
-    const newestNameInput = nameInputs[nameInputs.length - 1];
-
-    if (newestNameInput) {
-      newestNameInput.focus();
-      newestNameInput.select();
+    if (totalCell) {
+      totalCell.textContent = formatTotal(getPlayerTotal(player.id));
     }
-
-    tableScroller.scrollLeft = tableScroller.scrollWidth;
   });
+}
+
+function positionAddRoundButton() {
+  const workspaceRect = scoreWorkspace.getBoundingClientRect();
+  const latestRoundRow = scoreTable.querySelector("tbody tr:last-child");
+
+  if (!latestRoundRow) {
+    const header = scoreTable.querySelector("thead");
+    const headerRect = header.getBoundingClientRect();
+
+    addRoundButton.style.top = `${
+      headerRect.bottom - workspaceRect.top + 10
+    }px`;
+
+    return;
+  }
+
+  const latestRoundRect = latestRoundRow.getBoundingClientRect();
+
+  addRoundButton.style.top = `${
+    latestRoundRect.top -
+    workspaceRect.top +
+    latestRoundRect.height / 2 -
+    addRoundButton.offsetHeight / 2
+  }px`;
 }
 
 function removePlayer(playerId) {
@@ -340,24 +372,46 @@ function removePlayer(playerId) {
   render();
 }
 
-function addRound() {
+addPlayerButton.addEventListener("click", () => {
+  const newPlayer = {
+    id: createId(),
+    name: getNextPlayerName()
+  };
+
+  game.players.push(newPlayer);
+
+  game.rounds.forEach((round) => {
+    round.scores[newPlayer.id] = "";
+  });
+
+  render();
+
+  requestAnimationFrame(() => {
+    const playerInputs = document.querySelectorAll(".header-name-input");
+    const newestInput = playerInputs[playerInputs.length - 1];
+
+    if (newestInput) {
+      newestInput.focus();
+      newestInput.select();
+    }
+  });
+});
+
+addRoundButton.addEventListener("click", () => {
   game.rounds.push(createBlankRound());
   render();
 
   requestAnimationFrame(() => {
     const scoreInputs = document.querySelectorAll(".score-input");
-    const firstNewScoreInput =
+
+    const firstInputInNewestRound =
       scoreInputs[scoreInputs.length - game.players.length];
 
-    if (firstNewScoreInput) {
-      firstNewScoreInput.focus();
+    if (firstInputInNewestRound) {
+      firstInputInNewestRound.focus();
     }
   });
-}
-
-addPlayerButton.addEventListener("click", addPlayer);
-
-addRoundButton.addEventListener("click", addRound);
+});
 
 newGameButton.addEventListener("click", () => {
   const confirmed = window.confirm(
@@ -368,11 +422,18 @@ newGameButton.addEventListener("click", () => {
     return;
   }
 
-  game = createNewGame();
+  game = createInitialGame();
+  game.rounds[0] = createBlankRound();
   render();
 });
 
-window.addEventListener("resize", render);
+tableScroller.addEventListener("scroll", positionAddRoundButton);
+
+window.addEventListener("resize", () => {
+  renderScoreTable();
+
+  requestAnimationFrame(positionAddRoundButton);
+});
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
