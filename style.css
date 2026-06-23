@@ -165,4 +165,23 @@ section p {
     overflow-y: visible;
     padding: 2rem 1.5rem;
   }
+
+  .project-link {
+  display: inline-block;
+  margin-top: 12px;
+  color: #ffffff;
+  background: #8f1712;
+  padding: 10px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.project-link:hover {
+  background: #b32119;
+}
+
+.project-link:active {
+  transform: scale(0.97);
+}
 }
