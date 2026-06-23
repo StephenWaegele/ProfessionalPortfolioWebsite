@@ -2,97 +2,83 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, viewport-fit=cover"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stephen Waegele | Systems Engineer</title>
 
-  <title>Rummy Scorecard</title>
-
-  <meta name="theme-color" content="#0a5c2f" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Rummy" />
-
-  <link rel="manifest" href="./manifest.json?v=2" />
-
-  <link
-    rel="apple-touch-icon"
-    sizes="1024x1024"
-    href="./icons/rummy-icon-1024.png?v=2"
-  />
-
-  <link
-    rel="icon"
-    type="image/png"
-    sizes="1024x1024"
-    href="./icons/rummy-icon-1024.png?v=2"
-  />
-
-  <link rel="stylesheet" href="./rummy.css" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="script.js" defer></script>
 </head>
 
 <body>
-  <main class="app-shell">
-    <header class="app-header">
-      <div>
-        <p class="eyebrow">RUMMY</p>
-        <h1>Scorecard</h1>
-      </div>
+  <header>
+    <h1>Stephen Waegele</h1>
+    <p class="established">est. 1999</p>
+  </header>
 
-      <button id="newGameButton" class="new-game-button" type="button">
-        New Game
+  <div class="site-stage">
+    <nav class="site-nav" aria-label="Site navigation">
+      <button class="nav-button active" type="button" data-tab="about">
+        About
       </button>
-    </header>
 
-    <section id="setupScreen" class="setup-screen">
-      <div class="setup-card">
-        <div class="setup-heading">
-          <div>
-            <p class="section-kicker">PLAYER SETUP</p>
-            <h2>Add your players</h2>
-          </div>
+      <button class="nav-button" type="button" data-tab="projects">
+        Projects
+      </button>
 
-          <button
-            id="addPlayerSetupButton"
-            class="icon-button add-player-button"
-            type="button"
-            aria-label="Add player"
-            title="Add player"
-          >
-            +
-          </button>
+      <button class="nav-button" type="button" data-tab="contact">
+        Contact
+      </button>
+    </nav>
+
+    <main>
+      <section id="about" class="tab-panel active">
+        <h2>About</h2>
+
+        <p>
+          Systems engineering professional focused on requirements-based
+          verification, test automation, quality systems, and technical
+          problem solving.
+        </p>
+      </section>
+
+      <section id="projects" class="tab-panel">
+        <h2>Projects</h2>
+
+        <div class="project-card">
+          <h3>Rummy Scorecard</h3>
+
+          <p>
+            A fast offline Rummy scorekeeper with editable players, live totals,
+            round tracking, and Home Screen app behavior.
+          </p>
+
+          <a class="project-link" href="rummy/">
+            Open Rummy Scorecard
+          </a>
         </div>
 
-        <div id="setupPlayersGrid" class="setup-players-grid"></div>
+        <div class="project-card">
+          <h3>Robot Telemetry Test Automation Demo</h3>
 
-        <button id="applyPlayersButton" class="apply-button" type="button">
-          Apply Players
-        </button>
-      </div>
-    </section>
+          <p>
+            Python-based validation demo for simulated robot system data.
+          </p>
+        </div>
+      </section>
 
-    <section id="scoreScreen" class="score-screen hidden">
-      <div id="tableScroller" class="table-scroller">
-        <table
-          id="scoreTable"
-          class="score-table"
-          aria-label="Rummy scorecard"
-        ></table>
-      </div>
+      <section id="contact" class="tab-panel">
+        <h2>Contact</h2>
 
-      <button
-        id="addRoundButton"
-        class="add-round-button"
-        type="button"
-        aria-label="Add round"
-        title="Add round"
-      >
-        +
-      </button>
-    </section>
-  </main>
+        <p>Email: stephen.waegele@gmail.com</p>
 
-  <script src="./rummy.js"></script>
+        <p>
+          LinkedIn:
+          <a href="https://www.linkedin.com/in/stephenwaegele" target="_blank" rel="noopener">
+            linkedin.com/in/stephenwaegele
+          </a>
+        </p>
+      </section>
+    </main>
+  </div>
 </body>
 </html>
