@@ -278,7 +278,7 @@ function renderScoreTable() {
       const scoreInput = document.createElement("input");
       scoreInput.className = "score-input";
       scoreInput.type = "text";
-      scoreInput.inputMode = "decimal";
+      scoreInput.inputMode = "text";
       scoreInput.autocomplete = "off";
       scoreInput.placeholder = "0";
       scoreInput.value = round.scores[player.id] ?? "";
