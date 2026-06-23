@@ -7,9 +7,9 @@
   --red: #cb241d;
   --red-dark: #981915;
   --ink: #1a1a1a;
-  --line: rgba(255, 255, 255, 0.22);
-  --round-column-width: 62px;
-  --side-control-space: 44px;
+  --line: rgba(255, 255, 255, 0.2);
+  --round-column-width: 52px;
+  --side-control-space: 28px;
   --shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
 }
 
@@ -46,31 +46,31 @@ button {
   min-height: 100vh;
   margin: 0 auto;
   padding:
-    max(20px, env(safe-area-inset-top))
-    16px
-    max(28px, env(safe-area-inset-bottom));
+    max(18px, env(safe-area-inset-top))
+    12px
+    max(24px, env(safe-area-inset-bottom));
 }
 
 .app-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
 .eyebrow {
-  margin: 0 0 4px;
+  margin: 0 0 3px;
   color: #d9efdb;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.15em;
 }
 
 h1 {
   margin: 0;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2rem, 8vw, 3rem);
+  font-size: clamp(1.9rem, 7vw, 2.7rem);
   line-height: 0.95;
 }
 
@@ -80,15 +80,16 @@ h1 {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.1);
   color: var(--white);
-  padding: 10px 14px;
-  font-size: 0.86rem;
+  padding: 8px 12px;
+  font-size: 0.82rem;
   font-weight: 800;
 }
 
 .new-game-button:active,
 .side-add-button:active,
-.remove-button:active,
-.round-delete-button:active {
+.action-button:active,
+.player-name-button:active,
+.round-name-button:active {
   transform: scale(0.95);
 }
 
@@ -101,9 +102,9 @@ h1 {
 .table-scroller {
   position: relative;
   overflow: auto;
-  max-height: calc(100vh - 180px);
+  max-height: calc(100vh - 155px);
   border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 22px;
+  border-radius: 20px;
   background: rgba(0, 0, 0, 0.16);
   box-shadow: var(--shadow);
   -webkit-overflow-scrolling: touch;
@@ -133,7 +134,7 @@ h1 {
   z-index: 5;
   background: #0a5c2f;
   color: var(--white);
-  padding: 12px 5px;
+  padding: 9px 3px;
 }
 
 .score-table thead th:first-child {
@@ -157,51 +158,41 @@ h1 {
 .round-cell {
   z-index: 4;
   background: #073d20;
-  color: #d9efdb;
-  padding: 8px 3px;
-  font-size: 0.76rem;
-  font-weight: 900;
+  padding: 0;
 }
 
 .total-label {
   z-index: 9;
   background: var(--red-dark) !important;
   color: var(--white);
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 900;
 }
 
-.player-header-wrap {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.header-name-input {
+.player-name-button,
+.round-name-button {
   width: 100%;
-  min-width: 0;
   border: 0;
-  outline: none;
   background: transparent;
-  color: var(--white);
-  text-align: center;
-  font-size: 0.9rem;
+  color: inherit;
   font-weight: 900;
 }
 
-.remove-button,
-.round-delete-button {
-  display: inline-grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-  color: var(--white);
-  font-size: 1.05rem;
-  line-height: 1;
+.player-name-button {
+  min-height: 35px;
+  padding: 4px 2px;
+  font-size: 0.8rem;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.round-name-button {
+  min-height: 60px;
+  padding: 8px 2px;
+  color: #d9efdb;
+  font-size: 0.82rem;
 }
 
 .score-cell {
@@ -211,14 +202,14 @@ h1 {
 
 .score-input {
   width: 100%;
-  min-height: 68px;
+  min-height: 60px;
   border: 0;
   outline: none;
   background: transparent;
   color: var(--ink);
-  padding: 10px 4px;
+  padding: 8px 3px;
   text-align: center;
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-weight: 800;
 }
 
@@ -230,21 +221,14 @@ h1 {
   background: #fff5bb;
 }
 
-.round-number-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 7px;
-}
-
 .score-table tfoot td {
   position: sticky;
   bottom: 0;
   z-index: 7;
   background: var(--red);
   color: var(--white);
-  padding: 14px 5px;
-  font-size: 1.08rem;
+  padding: 11px 4px;
+  font-size: 1rem;
   font-weight: 900;
 }
 
@@ -256,41 +240,104 @@ h1 {
   position: absolute;
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 20px;
+  height: 20px;
   border: 0;
   border-radius: 50%;
   background: var(--red);
   color: var(--white);
-  font-size: 2rem;
-  font-weight: 400;
+  font-size: 1.35rem;
+  font-weight: 500;
   line-height: 1;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.24);
   z-index: 20;
 }
 
 .add-player-button {
-  top: 18px;
-  right: 0;
+  top: 24px;
+  right: 2px;
 }
 
 .add-round-button {
-  left: 0;
-  top: 120px;
+  left: 2px;
+  top: 100px;
+}
+
+.action-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: end center;
+}
+
+.action-modal.hidden {
+  display: none;
+}
+
+.action-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.action-dialog {
+  position: relative;
+  width: min(100%, 440px);
+  border-radius: 22px 22px 0 0;
+  background: #f8f8f8;
+  color: #171717;
+  padding: 20px 16px max(20px, env(safe-area-inset-bottom));
+  box-shadow: 0 -12px 35px rgba(0, 0, 0, 0.25);
+}
+
+.action-modal-type {
+  margin: 0 0 4px;
+  color: #666;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.action-dialog h2 {
+  margin: 0 0 16px;
+  font-size: 1.3rem;
+}
+
+.action-button {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  margin-top: 10px;
+  padding: 13px;
+  background: #e7e7e7;
+  color: #171717;
+  font-weight: 800;
+}
+
+.delete-action {
+  background: #c82720;
+  color: #ffffff;
+}
+
+.cancel-action {
+  background: #ffffff;
+  border: 1px solid #d2d2d2;
 }
 
 @media (min-width: 520px) {
   .app-shell {
-    padding-left: 24px;
-    padding-right: 24px;
+    padding-left: 22px;
+    padding-right: 22px;
   }
 
   .score-workspace {
-    --side-control-space: 52px;
+    --side-control-space: 32px;
   }
 
   .side-add-button {
-    width: 42px;
-    height: 42px;
+    width: 22px;
+    height: 22px;
   }
 }

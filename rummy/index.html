@@ -34,7 +34,7 @@
       </button>
     </header>
 
-    <section id="scoreScreen" class="score-screen">
+    <section class="score-screen">
       <div id="scoreWorkspace" class="score-workspace">
         <button
           id="addPlayerButton"
@@ -66,6 +66,27 @@
       </div>
     </section>
   </main>
+
+  <div id="actionModal" class="action-modal hidden" role="dialog" aria-modal="true">
+    <div class="action-modal-backdrop" data-close-modal></div>
+
+    <section class="action-dialog" aria-labelledby="actionModalTitle">
+      <p id="actionModalType" class="action-modal-type"></p>
+      <h2 id="actionModalTitle">Manage</h2>
+
+      <button id="renameActionButton" class="action-button" type="button">
+        Rename
+      </button>
+
+      <button id="deleteActionButton" class="action-button delete-action" type="button">
+        Delete
+      </button>
+
+      <button id="cancelActionButton" class="action-button cancel-action" type="button">
+        Cancel
+      </button>
+    </section>
+  </div>
 
   <script src="./rummy.js"></script>
 </body>

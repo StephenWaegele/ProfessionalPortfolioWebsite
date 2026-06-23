@@ -1,4 +1,4 @@
-const CACHE_NAME = "rummy-scorecard-v4";
+const CACHE_NAME = "rummy-scorecard-v5";
 
 const APP_FILES = [
   "./",
