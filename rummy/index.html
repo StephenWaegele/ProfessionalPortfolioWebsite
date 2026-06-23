@@ -14,20 +14,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Rummy" />
 
-  <link rel="manifest" href="./manifest.json?v=2" />
-
-  <link
-    rel="apple-touch-icon"
-    sizes="1024x1024"
-    href="./icons/rummy-icon-1024.png?v=2"
-  />
-
-  <link
-    rel="icon"
-    type="image/png"
-    sizes="1024x1024"
-    href="./icons/rummy-icon-1024.png?v=2"
-  />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="./apple-touch-icon.png" />
 
   <link rel="stylesheet" href="./rummy.css" />
 </head>
@@ -45,40 +34,23 @@
       </button>
     </header>
 
-    <section id="setupScreen" class="setup-screen">
-      <div class="setup-card">
-        <div class="setup-heading">
-          <div>
-            <p class="section-kicker">PLAYER SETUP</p>
-            <h2>Add your players</h2>
-          </div>
-
-          <button
-            id="addPlayerSetupButton"
-            class="icon-button add-player-button"
-            type="button"
-            aria-label="Add player"
-            title="Add player"
-          >
-            +
-          </button>
-        </div>
-
-        <div id="setupPlayersGrid" class="setup-players-grid"></div>
-
-        <button id="applyPlayersButton" class="apply-button" type="button">
-          Apply Players
-        </button>
-      </div>
-    </section>
-
-    <section id="scoreScreen" class="score-screen hidden">
+    <section class="score-screen">
       <div id="tableScroller" class="table-scroller">
         <table
           id="scoreTable"
           class="score-table"
           aria-label="Rummy scorecard"
         ></table>
+
+        <button
+          id="addPlayerButton"
+          class="add-player-button"
+          type="button"
+          aria-label="Add player"
+          title="Add player"
+        >
+          +
+        </button>
       </div>
 
       <button

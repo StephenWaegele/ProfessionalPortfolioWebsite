@@ -1,14 +1,8 @@
-const STORAGE_KEY = "rummy-scorecard-current-game";
-
-const setupScreen = document.getElementById("setupScreen");
-const scoreScreen = document.getElementById("scoreScreen");
-
-const setupPlayersGrid = document.getElementById("setupPlayersGrid");
-const addPlayerSetupButton = document.getElementById("addPlayerSetupButton");
-const applyPlayersButton = document.getElementById("applyPlayersButton");
+const STORAGE_KEY = "rummy-scorecard-current-game-v2";
 
 const scoreTable = document.getElementById("scoreTable");
 const tableScroller = document.getElementById("tableScroller");
+const addPlayerButton = document.getElementById("addPlayerButton");
 const addRoundButton = document.getElementById("addRoundButton");
 const newGameButton = document.getElementById("newGameButton");
 
@@ -18,14 +12,28 @@ function createId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function createInitialGame() {
+function createNewGame() {
+  const players = [
+    { id: createId(), name: "Player 1" },
+    { id: createId(), name: "Player 2" }
+  ];
+
   return {
-    phase: "setup",
-    players: [
-      { id: createId(), name: "Player 1" },
-      { id: createId(), name: "Player 2" }
-    ],
-    rounds: []
+    players,
+    rounds: [createBlankRound(players)]
+  };
+}
+
+function createBlankRound(players = game.players) {
+  const scores = {};
+
+  players.forEach((player) => {
+    scores[player.id] = "";
+  });
+
+  return {
+    id: createId(),
+    scores
   };
 }
 
@@ -34,7 +42,7 @@ function loadGame() {
     const saved = localStorage.getItem(STORAGE_KEY);
 
     if (!saved) {
-      return createInitialGame();
+      return createNewGame();
     }
 
     const parsed = JSON.parse(saved);
@@ -42,14 +50,19 @@ function loadGame() {
     if (
       !parsed ||
       !Array.isArray(parsed.players) ||
+      parsed.players.length < 1 ||
       !Array.isArray(parsed.rounds)
     ) {
-      return createInitialGame();
+      return createNewGame();
+    }
+
+    if (parsed.rounds.length === 0) {
+      parsed.rounds = [createBlankRound(parsed.players)];
     }
 
     return parsed;
   } catch {
-    return createInitialGame();
+    return createNewGame();
   }
 }
 
@@ -63,90 +76,48 @@ function getNextPlayerName() {
 
 function normalizePlayerNames() {
   game.players.forEach((player, index) => {
-    const cleanName = player.name.trim();
-
-    player.name = cleanName || `Player ${index + 1}`;
+    const cleanedName = String(player.name || "").trim();
+    player.name = cleanedName || `Player ${index + 1}`;
   });
 }
 
-function createBlankRound() {
-  const scores = {};
+function getPlayerTotal(playerId) {
+  return game.rounds.reduce((sum, round) => {
+    const raw = String(round.scores[playerId] ?? "").trim();
 
+    if (raw === "") {
+      return sum;
+    }
+
+    const value = Number(raw);
+    return Number.isFinite(value) ? sum + value : sum;
+  }, 0);
+}
+
+function formatTotal(total) {
+  return Number.isInteger(total) ? String(total) : total.toFixed(1);
+}
+
+function updateTotalCells() {
   game.players.forEach((player) => {
-    scores[player.id] = "";
-  });
+    const totalCell = document.querySelector(
+      `[data-total-for="${player.id}"]`
+    );
 
-  return {
-    id: createId(),
-    scores
-  };
+    if (totalCell) {
+      totalCell.textContent = formatTotal(getPlayerTotal(player.id));
+    }
+  });
 }
 
 function render() {
   normalizePlayerNames();
   saveGame();
 
-  const isSetup = game.phase === "setup";
-
-  setupScreen.classList.toggle("hidden", !isSetup);
-  scoreScreen.classList.toggle("hidden", isSetup);
-
-  if (isSetup) {
-    renderSetup();
-  } else {
-    renderScoreTable();
-  }
-}
-
-function renderSetup() {
-  setupPlayersGrid.innerHTML = "";
-
-  game.players.forEach((player, index) => {
-    const card = document.createElement("div");
-    card.className = "setup-player-card";
-
-    const input = document.createElement("input");
-    input.className = "player-name-input";
-    input.type = "text";
-    input.value = player.name;
-    input.autocomplete = "off";
-    input.spellcheck = false;
-    input.setAttribute("aria-label", `Player ${index + 1} name`);
-
-    input.addEventListener("input", (event) => {
-      player.name = event.target.value;
-      saveGame();
-    });
-
-    const removeButton = document.createElement("button");
-    removeButton.className = "remove-player-setup";
-    removeButton.type = "button";
-    removeButton.innerHTML = "&times;";
-    removeButton.setAttribute("aria-label", `Remove ${player.name}`);
-
-    removeButton.addEventListener("click", () => {
-      removePlayer(player.id);
-    });
-
-    card.append(input);
-
-    if (game.players.length > 1) {
-      card.append(removeButton);
-    }
-
-    setupPlayersGrid.append(card);
-  });
-}
-
-function renderScoreTable() {
-  if (game.rounds.length === 0) {
-    game.rounds.push(createBlankRound());
-  }
-
   scoreTable.innerHTML = "";
 
   const playerCount = game.players.length;
-  const scrollerWidth = tableScroller.clientWidth || window.innerWidth - 32;
+  const tableViewportWidth = tableScroller.clientWidth || window.innerWidth - 32;
   const roundColumnWidth = 58;
 
   let playerColumnWidth;
@@ -154,32 +125,32 @@ function renderScoreTable() {
   if (playerCount <= 4) {
     playerColumnWidth = Math.max(
       72,
-      Math.floor((scrollerWidth - roundColumnWidth) / playerCount)
+      Math.floor((tableViewportWidth - roundColumnWidth) / playerCount)
     );
   } else {
     playerColumnWidth = Math.max(
       76,
-      Math.floor((scrollerWidth - roundColumnWidth) / 4.22)
+      Math.floor((tableViewportWidth - roundColumnWidth) / 4.22)
     );
   }
 
   const tableWidth =
     playerCount <= 4
-      ? scrollerWidth
+      ? tableViewportWidth
       : roundColumnWidth + playerColumnWidth * playerCount;
 
   scoreTable.style.width = `${tableWidth}px`;
 
   const colgroup = document.createElement("colgroup");
 
-  const roundColumn = document.createElement("col");
-  roundColumn.style.width = `${roundColumnWidth}px`;
-  colgroup.append(roundColumn);
+  const roundCol = document.createElement("col");
+  roundCol.style.width = `${roundColumnWidth}px`;
+  colgroup.append(roundCol);
 
   game.players.forEach(() => {
-    const playerColumn = document.createElement("col");
-    playerColumn.style.width = `${playerColumnWidth}px`;
-    colgroup.append(playerColumn);
+    const playerCol = document.createElement("col");
+    playerCol.style.width = `${playerColumnWidth}px`;
+    colgroup.append(playerCol);
   });
 
   scoreTable.append(colgroup);
@@ -193,8 +164,8 @@ function renderScoreTable() {
   headerRow.append(roundHeading);
 
   game.players.forEach((player, index) => {
-    const header = document.createElement("th");
-    header.className = "player-header";
+    const playerHeader = document.createElement("th");
+    playerHeader.className = "player-header";
 
     const headerWrap = document.createElement("div");
     headerWrap.className = "player-header-wrap";
@@ -214,27 +185,27 @@ function renderScoreTable() {
 
     playerNameInput.addEventListener("blur", () => {
       normalizePlayerNames();
-      render();
-    });
-
-    const removePlayerButton = document.createElement("button");
-    removePlayerButton.className = "remove-button";
-    removePlayerButton.type = "button";
-    removePlayerButton.innerHTML = "&times;";
-    removePlayerButton.setAttribute("aria-label", `Remove ${player.name}`);
-
-    removePlayerButton.addEventListener("click", () => {
-      removePlayer(player.id);
+      saveGame();
     });
 
     headerWrap.append(playerNameInput);
 
     if (game.players.length > 1) {
+      const removePlayerButton = document.createElement("button");
+      removePlayerButton.className = "remove-button";
+      removePlayerButton.type = "button";
+      removePlayerButton.innerHTML = "&times;";
+      removePlayerButton.setAttribute("aria-label", `Remove ${player.name}`);
+
+      removePlayerButton.addEventListener("click", () => {
+        removePlayer(player.id);
+      });
+
       headerWrap.append(removePlayerButton);
     }
 
-    header.append(headerWrap);
-    headerRow.append(header);
+    playerHeader.append(headerWrap);
+    headerRow.append(playerHeader);
   });
 
   thead.append(headerRow);
@@ -251,8 +222,8 @@ function renderScoreTable() {
     const roundNumberWrap = document.createElement("div");
     roundNumberWrap.className = "round-number-wrap";
 
-    const roundLabel = document.createElement("span");
-    roundLabel.textContent = roundIndex + 1;
+    const roundNumber = document.createElement("span");
+    roundNumber.textContent = roundIndex + 1;
 
     const deleteRoundButton = document.createElement("button");
     deleteRoundButton.className = "round-delete-button";
@@ -273,14 +244,14 @@ function renderScoreTable() {
       render();
     });
 
-    roundNumberWrap.append(roundLabel);
+    roundNumberWrap.append(roundNumber);
     roundNumberWrap.append(deleteRoundButton);
     roundCell.append(roundNumberWrap);
     row.append(roundCell);
 
     game.players.forEach((player) => {
-      const cell = document.createElement("td");
-      cell.className = "score-cell";
+      const scoreCell = document.createElement("td");
+      scoreCell.className = "score-cell";
 
       const scoreInput = document.createElement("input");
       scoreInput.className = "score-input";
@@ -300,8 +271,8 @@ function renderScoreTable() {
         updateTotalCells();
       });
 
-      cell.append(scoreInput);
-      row.append(cell);
+      scoreCell.append(scoreInput);
+      row.append(scoreCell);
     });
 
     tbody.append(row);
@@ -328,31 +299,30 @@ function renderScoreTable() {
   scoreTable.append(tfoot);
 }
 
-function getPlayerTotal(playerId) {
-  return game.rounds.reduce((sum, round) => {
-    const rawValue = String(round.scores[playerId] ?? "").trim();
+function addPlayer() {
+  const newPlayer = {
+    id: createId(),
+    name: getNextPlayerName()
+  };
 
-    if (rawValue === "") {
-      return sum;
+  game.players.push(newPlayer);
+
+  game.rounds.forEach((round) => {
+    round.scores[newPlayer.id] = "";
+  });
+
+  render();
+
+  requestAnimationFrame(() => {
+    const nameInputs = document.querySelectorAll(".header-name-input");
+    const newestNameInput = nameInputs[nameInputs.length - 1];
+
+    if (newestNameInput) {
+      newestNameInput.focus();
+      newestNameInput.select();
     }
 
-    const parsedValue = Number(rawValue);
-
-    return Number.isFinite(parsedValue) ? sum + parsedValue : sum;
-  }, 0);
-}
-
-function formatTotal(total) {
-  return Number.isInteger(total) ? String(total) : total.toFixed(1);
-}
-
-function updateTotalCells() {
-  game.players.forEach((player) => {
-    const cell = document.querySelector(`[data-total-for="${player.id}"]`);
-
-    if (cell) {
-      cell.textContent = formatTotal(getPlayerTotal(player.id));
-    }
+    tableScroller.scrollLeft = tableScroller.scrollWidth;
   });
 }
 
@@ -370,51 +340,24 @@ function removePlayer(playerId) {
   render();
 }
 
-addPlayerSetupButton.addEventListener("click", () => {
-  const player = {
-    id: createId(),
-    name: getNextPlayerName()
-  };
-
-  game.players.push(player);
-  render();
-
-  requestAnimationFrame(() => {
-    const playerInputs = document.querySelectorAll(".player-name-input");
-    const newestInput = playerInputs[playerInputs.length - 1];
-
-    if (newestInput) {
-      newestInput.focus();
-      newestInput.select();
-    }
-  });
-});
-
-applyPlayersButton.addEventListener("click", () => {
-  normalizePlayerNames();
-  game.phase = "scoring";
-
-  if (game.rounds.length === 0) {
-    game.rounds.push(createBlankRound());
-  }
-
-  render();
-});
-
-addRoundButton.addEventListener("click", () => {
+function addRound() {
   game.rounds.push(createBlankRound());
   render();
 
   requestAnimationFrame(() => {
-    const inputs = document.querySelectorAll(".score-input");
-    const firstInputInNewRound =
-      inputs[inputs.length - game.players.length];
+    const scoreInputs = document.querySelectorAll(".score-input");
+    const firstNewScoreInput =
+      scoreInputs[scoreInputs.length - game.players.length];
 
-    if (firstInputInNewRound) {
-      firstInputInNewRound.focus();
+    if (firstNewScoreInput) {
+      firstNewScoreInput.focus();
     }
   });
-});
+}
+
+addPlayerButton.addEventListener("click", addPlayer);
+
+addRoundButton.addEventListener("click", addRound);
 
 newGameButton.addEventListener("click", () => {
   const confirmed = window.confirm(
@@ -425,19 +368,15 @@ newGameButton.addEventListener("click", () => {
     return;
   }
 
-  game = createInitialGame();
+  game = createNewGame();
   render();
 });
 
-window.addEventListener("resize", () => {
-  if (game.phase === "scoring") {
-    renderScoreTable();
-  }
-});
+window.addEventListener("resize", render);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("service-worker.js");
+    navigator.serviceWorker.register("./service-worker.js");
   });
 }
 
