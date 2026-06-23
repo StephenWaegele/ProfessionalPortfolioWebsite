@@ -2,43 +2,113 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#6537e6" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
+
   <title>RollCall</title>
+
+  <meta name="theme-color" content="#6537e6" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="RollCall" />
+
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=1" />
+  <link rel="icon" type="image/png" href="apple-touch-icon.png?v=1" />
+
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <main class="app-shell">
     <section id="new-game-screen" class="screen new-game-screen">
       <div class="new-game-card">
         <p class="eyebrow">FAST WORD GAME</p>
         <h1>Roll<span>Call</span></h1>
-        <p class="intro">Roll the dice. Race to name a word that fits the category and matches the letter count.</p>
+
+        <p class="intro">
+          Roll the dice. Race to name a word that fits the category and matches
+          the letter count.
+        </p>
 
         <div class="player-entry-header">
           <h2>Players</h2>
-          <button id="add-player-button" class="text-button" type="button">+ Add player</button>
+
+          <button
+            id="add-player-button"
+            class="text-button"
+            type="button"
+          >
+            + Add player
+          </button>
         </div>
-        <div id="new-game-player-list" class="name-list" aria-live="polite"></div>
-        <button id="start-game-button" class="primary-button start-button" type="button">Start game</button>
-        <p class="orientation-note">Best played in landscape. Portrait still works.</p>
+
+        <div
+          id="new-game-player-list"
+          class="name-list"
+          aria-live="polite"
+        ></div>
+
+        <button
+          id="start-game-button"
+          class="primary-button start-button"
+          type="button"
+        >
+          Start game
+        </button>
+
+        <p class="orientation-note">
+          Best played in landscape. Portrait still works.
+        </p>
       </div>
     </section>
 
-    <section id="game-screen" class="screen game-screen hidden" aria-live="polite">
+    <section
+      id="game-screen"
+      class="screen game-screen hidden"
+      aria-live="polite"
+    >
       <div class="game-background-shape shape-one"></div>
       <div class="game-background-shape shape-two"></div>
 
       <header class="game-topbar">
         <div id="dice-summary" class="dice-summary" aria-label="Dice total">
-          <div id="mini-die-one" class="mini-die" aria-hidden="true"></div>
-          <div id="mini-die-two" class="mini-die" aria-hidden="true"></div>
-          <div class="total-badge"><span>Total</span><strong id="dice-total">—</strong></div>
+          <div
+            id="mini-die-one"
+            class="mini-die"
+            aria-hidden="true"
+          ></div>
+
+          <div
+            id="mini-die-two"
+            class="mini-die"
+            aria-hidden="true"
+          ></div>
+
+          <div class="total-badge">
+            <span>Total</span>
+            <strong id="dice-total">—</strong>
+          </div>
         </div>
 
-        <button id="round-action" class="timer-button" type="button" disabled>60</button>
+        <button
+          id="round-action"
+          class="timer-button"
+          type="button"
+          disabled
+        >
+          60
+        </button>
 
-        <button id="settings-button" class="icon-button" type="button" aria-label="Open settings">⚙</button>
+        <button
+          id="settings-button"
+          class="icon-button"
+          type="button"
+          aria-label="Open settings"
+        >
+          ⚙
+        </button>
       </header>
 
       <section class="round-stage" aria-label="Current round">
@@ -46,20 +116,37 @@
           <div id="big-die-one" class="die big-die"></div>
           <div id="big-die-two" class="die big-die"></div>
         </div>
+
         <p id="round-status" class="round-status">Get ready...</p>
-        <h2 id="category-display" class="category-display">ROLLCALL</h2>
+
+        <h2 id="category-display" class="category-display">
+          ROLLCALL
+        </h2>
       </section>
 
-      <footer id="players-bar" class="players-bar" aria-label="Select round winner"></footer>
+      <footer
+        id="players-bar"
+        class="players-bar"
+        aria-label="Select round winner"
+      ></footer>
     </section>
 
     <section id="winner-screen" class="screen winner-screen hidden">
       <div class="winner-card">
         <p class="eyebrow">GAME OVER</p>
         <p class="winner-label">Winner</p>
+
         <h1 id="winner-name">Player</h1>
+
         <p id="winner-score" class="winner-score">100 points</p>
-        <button id="play-again-button" class="primary-button" type="button">Play again</button>
+
+        <button
+          id="play-again-button"
+          class="primary-button"
+          type="button"
+        >
+          Play again
+        </button>
       </div>
     </section>
   </main>
@@ -71,11 +158,20 @@
           <p class="eyebrow">GAME CONTROLS</p>
           <h2>Settings</h2>
         </div>
-        <button id="close-settings-button" class="icon-button dark-icon" type="submit" aria-label="Close settings">×</button>
+
+        <button
+          id="close-settings-button"
+          class="icon-button dark-icon"
+          type="submit"
+          aria-label="Close settings"
+        >
+          ×
+        </button>
       </div>
 
       <label class="timer-setting">
         Round timer
+
         <select id="timer-duration-select">
           <option value="30">30 seconds</option>
           <option value="45">45 seconds</option>
@@ -87,11 +183,28 @@
 
       <div class="settings-player-header">
         <h3>Players</h3>
-        <button id="settings-add-player-button" class="text-button purple" type="button">+ Add player</button>
-      </div>
-      <div id="settings-player-list" class="name-list settings-list"></div>
 
-      <button id="save-settings-button" class="primary-button" type="submit">Save settings</button>
+        <button
+          id="settings-add-player-button"
+          class="text-button purple"
+          type="button"
+        >
+          + Add player
+        </button>
+      </div>
+
+      <div
+        id="settings-player-list"
+        class="name-list settings-list"
+      ></div>
+
+      <button
+        id="save-settings-button"
+        class="primary-button"
+        type="submit"
+      >
+        Save settings
+      </button>
     </form>
   </dialog>
 
