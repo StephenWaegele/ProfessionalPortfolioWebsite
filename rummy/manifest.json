@@ -9,13 +9,13 @@
   "description": "A fast offline Rummy scorekeeper.",
   "icons": [
     {
-      "src": "./icons/rummy-icon-1024.png",
+      "src": "./icons/rummy-icon-1024.png?v=2",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./icons/rummy-icon-1024.png",
+      "src": "./icons/rummy-icon-1024.png?v=2",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "maskable"
