@@ -154,6 +154,7 @@ h1 {
 .round-heading {
   background: #084624 !important;
   font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .round-cell {
@@ -166,8 +167,8 @@ h1 {
   z-index: 9;
   background: var(--red-dark) !important;
   color: var(--white);
-  font-size: 0.7rem;
-  font-weight: 900;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .player-name-button,
@@ -239,21 +240,35 @@ h1 {
 
 .side-add-button {
   position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: 20px;
   height: 20px;
-  padding: 0 0 2px;
+  padding: 0;
   border: 0;
   border-radius: 50%;
   background: var(--red);
-  color: var(--white);
-  font-size: 1.18rem;
-  font-weight: 500;
-  line-height: 1;
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
   box-shadow: 0 5px 12px rgba(0, 0, 0, 0.24);
   z-index: 20;
+}
+
+.side-add-button::before,
+.side-add-button::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--white);
+  transform: translate(-50%, -50%);
+}
+
+.side-add-button::after {
+  transform: translate(-50%, -50%) rotate(90deg);
 }
 
 .add-player-button {
