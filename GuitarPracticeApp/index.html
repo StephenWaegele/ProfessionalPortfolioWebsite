@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1020" />
+  <title>Fretwise | Guitar Practice</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand-lockup">
+        <p class="eyebrow">GUITAR PRACTICE</p>
+        <h1>Fret<span>wise</span></h1>
+      </div>
+
+      <button id="audio-button" class="audio-button" type="button" aria-pressed="false">
+        <span class="audio-icon" aria-hidden="true">♪</span>
+        <span id="audio-button-label">Enable audio</span>
+      </button>
+    </header>
+
+    <section class="hero-card" aria-labelledby="module-title">
+      <div>
+        <p class="module-label">MODULE 01</p>
+        <h2 id="module-title">Intervals</h2>
+        <p id="module-description">Choose any two notes on the fretboard. Hear them, see them, and learn the distance between them.</p>
+      </div>
+
+      <div class="mode-switch" role="group" aria-label="Practice mode">
+        <button class="mode-button is-active" type="button" data-mode="explore">Explore</button>
+        <button class="mode-button" type="button" data-mode="quiz">Quiz</button>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <section class="panel results-panel" aria-live="polite">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">CURRENT INTERVAL</p>
+            <h3 id="interval-name">Pick two notes</h3>
+          </div>
+          <span id="interval-badge" class="interval-badge">—</span>
+        </div>
+
+        <p id="interval-detail" class="interval-detail">Tap any fret, then choose a second note to reveal the interval.</p>
+
+        <div class="selected-notes" aria-label="Selected notes">
+          <div class="note-readout">
+            <span class="note-readout-label">First note</span>
+            <strong id="first-note">—</strong>
+          </div>
+          <div class="note-readout-arrow" aria-hidden="true">→</div>
+          <div class="note-readout">
+            <span class="note-readout-label">Second note</span>
+            <strong id="second-note">—</strong>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button id="play-interval-button" class="primary-button" type="button" disabled>Play interval</button>
+          <button id="clear-button" class="secondary-button" type="button">Clear</button>
+        </div>
+      </section>
+
+      <section id="quiz-card" class="panel quiz-card is-hidden" aria-live="polite">
+        <div class="quiz-topline">
+          <p class="eyebrow">INTERVAL QUIZ</p>
+          <span id="quiz-progress" class="quiz-progress">Question 1</span>
+        </div>
+
+        <h3 id="quiz-prompt">Which interval do these notes create?</h3>
+        <p id="quiz-notes" class="quiz-notes">Select two notes on the fretboard.</p>
+
+        <div id="quiz-choices" class="quiz-choices"></div>
+
+        <div class="quiz-stats">
+          <div>
+            <span>Score</span>
+            <strong id="quiz-score">0</strong>
+          </div>
+          <div>
+            <span>Streak</span>
+            <strong id="quiz-streak">0</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel fretboard-panel">
+        <div class="fretboard-header">
+          <div>
+            <p class="eyebrow">INTERACTIVE FRETBOARD</p>
+            <h3>Standard tuning</h3>
+          </div>
+          <label class="fret-select-label" for="fret-count">Frets
+            <select id="fret-count">
+              <option value="8">8</option>
+              <option value="12" selected>12</option>
+              <option value="15">15</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="fretboard-wrap">
+          <div id="fretboard" class="fretboard" aria-label="Interactive guitar fretboard"></div>
+        </div>
+
+        <p id="fretboard-hint" class="fretboard-hint">Tap two frets. The first note is gold, the second is violet.</p>
+      </section>
+    </section>
+  </main>
+
+  <template id="choice-template">
+    <button class="quiz-choice" type="button"></button>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
