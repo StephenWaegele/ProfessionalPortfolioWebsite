@@ -153,8 +153,12 @@ h1 {
 
 .round-heading {
   background: #084624 !important;
-  font-size: 0.72rem;
-  font-weight: 700;
+}
+
+.round-heading,
+.total-label {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
 }
 
 .round-cell {
@@ -167,8 +171,6 @@ h1 {
   z-index: 9;
   background: var(--red-dark) !important;
   color: var(--white);
-  font-size: 0.72rem;
-  font-weight: 700;
 }
 
 .player-name-button,

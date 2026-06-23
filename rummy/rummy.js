@@ -297,7 +297,7 @@ function renderScoreTable() {
 
   const totalLabel = document.createElement("td");
   totalLabel.className = "total-label";
-  totalLabel.textContent = "TOTAL";
+  totalLabel.textContent = "Total";
   totalRow.append(totalLabel);
 
   game.players.forEach((player) => {
