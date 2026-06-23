@@ -1,0 +1,17 @@
+{
+  "name": "Stephen Waegele Portfolio",
+  "short_name": "Stephen Waegele",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#071a33",
+  "theme_color": "#071a33",
+  "description": "Stephen Waegele professional portfolio.",
+  "icons": [
+    {
+      "src": "./apple-touch-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
