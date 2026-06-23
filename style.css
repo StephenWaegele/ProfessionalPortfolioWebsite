@@ -9,10 +9,7 @@ html {
 }
 
 body {
-  height: 100vh;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  overflow: hidden;
+  min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
   background: #071a33;
   color: white;
@@ -45,7 +42,6 @@ header .established {
 
 .site-stage {
   position: relative;
-  min-height: 0;
   width: 100%;
   background: #071a33;
 }
@@ -83,9 +79,7 @@ header .established {
 
 main {
   width: min(80vw, 1100px);
-  height: 100%;
-  margin: 0 auto;
-  overflow-y: auto;
+  margin: 0 auto 3rem;
   padding: 3rem clamp(1.5rem, 5vw, 5rem);
   background: rgba(59, 65, 73, 0.82);
   border-left: 1px solid rgba(255, 255, 255, 0.08);
@@ -114,6 +108,53 @@ section p {
   color: rgba(255, 255, 255, 0.84);
 }
 
+.experience-card,
+.skills-group {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 1.5rem;
+  background: rgba(7, 26, 51, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+}
+
+.experience-card h3,
+.skills-group h3 {
+  margin-bottom: 0.25rem;
+  color: white;
+  font-size: 1.25rem;
+}
+
+.experience-company {
+  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.95rem;
+}
+
+.experience-card ul {
+  max-width: 75ch;
+  margin: 1rem 0 0 1.2rem;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.experience-card li + li {
+  margin-top: 0.5rem;
+}
+
+.skill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.skill-list span {
+  padding: 0.4rem 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 0.92rem;
+}
+
 .project-card {
   width: 100%;
   margin-top: 1rem;
@@ -132,13 +173,27 @@ section p {
   color: rgba(255, 255, 255, 0.78);
 }
 
-@media (max-width: 700px) {
-  body {
-    height: auto;
-    min-height: 100vh;
-    overflow: auto;
-  }
+.project-link {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #8f1712;
+  color: #ffffff;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
 
+.project-link:hover {
+  background: #b32119;
+}
+
+.project-link:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 700px) {
   .site-stage {
     display: flex;
     flex-direction: column;
@@ -159,29 +214,8 @@ section p {
 
   main {
     width: calc(100% - 2rem);
-    height: auto;
     min-height: 70vh;
     margin-bottom: 1rem;
-    overflow-y: visible;
     padding: 2rem 1.5rem;
   }
-
-  .project-link {
-  display: inline-block;
-  margin-top: 12px;
-  color: #ffffff;
-  background: #8f1712;
-  padding: 10px 14px;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 700;
-}
-
-.project-link:hover {
-  background: #b32119;
-}
-
-.project-link:active {
-  transform: scale(0.97);
-}
 }
