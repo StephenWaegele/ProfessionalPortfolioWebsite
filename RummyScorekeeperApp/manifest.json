@@ -1,0 +1,18 @@
+{
+  "name": "Rummy Scorecard",
+  "short_name": "Rummy",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#063d20",
+  "theme_color": "#0a5c2f",
+  "description": "A fast offline Rummy scorekeeper.",
+  "icons": [
+    {
+      "src": "icons/rummy-icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

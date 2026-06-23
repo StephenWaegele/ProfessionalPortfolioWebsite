@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+  <title>Rummy Scorecard</title>
+
+  <meta name="theme-color" content="#0a5c2f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Rummy" />
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/rummy-icon-1024.png" />
+  <link rel="stylesheet" href="rummy.css" />
+</head>
+
+<body>
+  <main class="app-shell">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">RUMMY</p>
+        <h1>Scorecard</h1>
+      </div>
+
+      <button id="newGameButton" class="new-game-button" type="button">
+        New Game
+      </button>
+    </header>
+
+    <section id="setupScreen" class="setup-screen">
+      <div class="setup-card">
+        <div class="setup-heading">
+          <div>
+            <p class="section-kicker">PLAYER SETUP</p>
+            <h2>Add your players</h2>
+          </div>
+
+          <button
+            id="addPlayerSetupButton"
+            class="icon-button add-player-button"
+            type="button"
+            aria-label="Add player"
+            title="Add player"
+          >
+            +
+          </button>
+        </div>
+
+        <div id="setupPlayersGrid" class="setup-players-grid"></div>
+
+        <button id="applyPlayersButton" class="apply-button" type="button">
+          Apply Players
+        </button>
+      </div>
+    </section>
+
+    <section id="scoreScreen" class="score-screen hidden">
+      <div id="tableScroller" class="table-scroller">
+        <table id="scoreTable" class="score-table" aria-label="Rummy scorecard"></table>
+      </div>
+
+      <button
+        id="addRoundButton"
+        class="add-round-button"
+        type="button"
+        aria-label="Add round"
+        title="Add round"
+      >
+        +
+      </button>
+    </section>
+  </main>
+
+  <script src="rummy.js"></script>
+</body>
+</html>
