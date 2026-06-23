@@ -1,301 +1,84 @@
-(() => {
-  'use strict';
+const state = { screen: 'home', module: 'Intervals', mode: 'explore', maxFret: 12, showNotes: false, showIntervals: false, soundOn: true, selected: [] };
+const strings = [
+  { name: 'E', midi: 64 }, { name: 'B', midi: 59 }, { name: 'G', midi: 55 },
+  { name: 'D', midi: 50 }, { name: 'A', midi: 45 }, { name: 'E', midi: 40 }
+];
+const noteNames = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+const intervalNames = ['Unison','Minor 2nd','Major 2nd','Minor 3rd','Major 3rd','Perfect 4th','Tritone','Perfect 5th','Minor 6th','Major 6th','Minor 7th','Major 7th','Octave','Minor 9th','Major 9th','Minor 10th','Major 10th','Perfect 11th','Tritone','Perfect 12th','Minor 13th','Major 13th','Minor 14th','Major 14th','Double Octave'];
+const inlays = new Set([3,5,7,9,12,15,17,19,21,24]);
+const $ = (id) => document.getElementById(id);
 
-  const NOTE_NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
-  const INTERVALS = [
-    { semitones: 0, short: 'P1', long: 'Perfect unison' },
-    { semitones: 1, short: 'm2', long: 'Minor 2nd' },
-    { semitones: 2, short: 'M2', long: 'Major 2nd' },
-    { semitones: 3, short: 'm3', long: 'Minor 3rd' },
-    { semitones: 4, short: 'M3', long: 'Major 3rd' },
-    { semitones: 5, short: 'P4', long: 'Perfect 4th' },
-    { semitones: 6, short: 'TT', long: 'Tritone' },
-    { semitones: 7, short: 'P5', long: 'Perfect 5th' },
-    { semitones: 8, short: 'm6', long: 'Minor 6th' },
-    { semitones: 9, short: 'M6', long: 'Major 6th' },
-    { semitones: 10, short: 'm7', long: 'Minor 7th' },
-    { semitones: 11, short: 'M7', long: 'Major 7th' },
-    { semitones: 12, short: 'P8', long: 'Perfect octave' }
-  ];
-
-  const STANDARD_TUNING = [64, 59, 55, 50, 45, 40]; // high E to low E
-
-  const state = {
-    mode: 'explore',
-    fretCount: 12,
-    selected: [],
-    audioEnabled: false,
-    audioContext: null,
-    quiz: {
-      questionNumber: 1,
-      score: 0,
-      streak: 0,
-      answerLocked: false,
-      notes: []
+function switchScreen(name) {
+  document.querySelectorAll('.screen').forEach(el => el.classList.remove('active-screen'));
+  $(`${name}-screen`).classList.add('active-screen');
+  state.screen = name;
+}
+function noteName(midi){ return noteNames[((midi % 12) + 12) % 12]; }
+function intervalLabel(semitones){ return intervalNames[Math.min(Math.abs(semitones),24)] || `${Math.abs(semitones)} semitones`; }
+function resetSelection(){ state.selected = []; updateResults(); renderFretboard(); }
+function updateResults(){
+  const output = $('result-text');
+  if (state.module !== 'Intervals') { output.textContent = `${state.module} workspace is ready. Module-specific study tools will populate this same fretboard shell.`; return; }
+  if (state.selected.length === 0) output.textContent = 'Tap notes on the fretboard to begin.';
+  if (state.selected.length === 1) output.textContent = `Root: ${noteName(state.selected[0].midi)}`;
+  if (state.selected.length === 2) {
+    const [root,target] = state.selected; const diff = target.midi - root.midi; const direction = diff >= 0 ? 'ascending' : 'descending';
+    output.innerHTML = `<span class="result-strong">Interval: ${intervalLabel(diff)} (${direction})</span>`;
+  }
+}
+function safeUpdateResults(){
+  const output = $('result-text');
+  if (state.module !== 'Intervals') { output.textContent = `${state.module} workspace is ready. Module-specific study tools will populate this same fretboard shell.`; return; }
+  if (!state.selected.length) { output.textContent = 'Tap notes on the fretboard to begin.'; return; }
+  if (state.selected.length === 1) { output.textContent = `Root: ${noteName(state.selected[0].midi)}`; return; }
+  const [root,target] = state.selected; const diff = target.midi-root.midi; const direction = diff >= 0 ? 'ascending' : 'descending';
+  output.innerHTML = `<span class="result-strong">Interval: ${intervalLabel(diff)} (${direction})</span>`;
+}
+function playMidi(midi) {
+  if (!state.soundOn) return;
+  try { const Ctx = window.AudioContext || window.webkitAudioContext; const ctx = new Ctx(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = 'triangle'; osc.frequency.value = 440 * Math.pow(2,(midi-69)/12); gain.gain.setValueAtTime(.0001,ctx.currentTime); gain.gain.exponentialRampToValueAtTime(.12,ctx.currentTime+.015); gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.8); osc.connect(gain).connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime+.82); setTimeout(()=>ctx.close(),1000); } catch(e) {}
+}
+function renderFretboard(){
+  const board = $('fretboard'); board.innerHTML = ''; board.style.setProperty('--fret-count', state.maxFret + 1);
+  strings.forEach((string, stringIndex) => {
+    const label = document.createElement('div'); label.className='string-label'; label.textContent=string.name; board.appendChild(label);
+    for(let fret=0; fret<=state.maxFret; fret++){
+      const midi=string.midi+fret; const cell=document.createElement('button'); cell.type='button'; cell.className='fret-cell'; cell.dataset.fret=fret; if(inlays.has(fret)) cell.classList.add('inlay');
+      const dot=document.createElement('span'); dot.className='note-dot';
+      const pos=state.selected.findIndex(n=>n.stringIndex===stringIndex && n.fret===fret);
+      if(pos===0) dot.classList.add('root'); if(pos===1) dot.classList.add('target');
+      if(pos>=0 && (state.showNotes || state.showIntervals)) { if(pos===0) dot.textContent = state.showIntervals ? 'I' : noteName(midi); else { const diff=midi-state.selected[0].midi; dot.textContent = state.showIntervals ? Math.abs(diff) : noteName(midi); } }
+      cell.appendChild(dot);
+      cell.addEventListener('click',()=>{
+        if(state.module !== 'Intervals') { $('result-text').textContent = `${state.module}: selected ${noteName(midi)} at fret ${fret}.`; playMidi(midi); return; }
+        if(state.selected.length===2) state.selected=[];
+        state.selected.push({stringIndex,fret,midi}); safeUpdateResults(); renderFretboard(); playMidi(midi);
+      });
+      board.appendChild(cell);
     }
-  };
-
-  const els = {
-    audioButton: document.querySelector('#audio-button'),
-    audioLabel: document.querySelector('#audio-button-label'),
-    modeButtons: [...document.querySelectorAll('.mode-button')],
-    moduleDescription: document.querySelector('#module-description'),
-    intervalName: document.querySelector('#interval-name'),
-    intervalBadge: document.querySelector('#interval-badge'),
-    intervalDetail: document.querySelector('#interval-detail'),
-    firstNote: document.querySelector('#first-note'),
-    secondNote: document.querySelector('#second-note'),
-    playButton: document.querySelector('#play-interval-button'),
-    clearButton: document.querySelector('#clear-button'),
-    fretboard: document.querySelector('#fretboard'),
-    fretCount: document.querySelector('#fret-count'),
-    fretboardHint: document.querySelector('#fretboard-hint'),
-    quizCard: document.querySelector('#quiz-card'),
-    quizPrompt: document.querySelector('#quiz-prompt'),
-    quizNotes: document.querySelector('#quiz-notes'),
-    quizChoices: document.querySelector('#quiz-choices'),
-    quizProgress: document.querySelector('#quiz-progress'),
-    quizScore: document.querySelector('#quiz-score'),
-    quizStreak: document.querySelector('#quiz-streak'),
-    choiceTemplate: document.querySelector('#choice-template')
-  };
-
-  function midiToNote(midi) {
-    return NOTE_NAMES[midi % 12];
-  }
-
-  function midiToFrequency(midi) {
-    return 440 * Math.pow(2, (midi - 69) / 12);
-  }
-
-  function normalizeInterval(firstMidi, secondMidi) {
-    const diff = Math.abs(secondMidi - firstMidi) % 12;
-    const octave = Math.abs(secondMidi - firstMidi) === 12;
-    return INTERVALS[octave ? 12 : diff];
-  }
-
-  function getCellData(stringIndex, fret) {
-    const midi = STANDARD_TUNING[stringIndex] + fret;
-    return { stringIndex, fret, midi, note: midiToNote(midi) };
-  }
-
-  function createFretboard() {
-    const columns = state.fretCount + 1;
-    els.fretboard.innerHTML = '';
-    els.fretboard.style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
-
-    STANDARD_TUNING.forEach((_, stringIndex) => {
-      for (let fret = 0; fret <= state.fretCount; fret += 1) {
-        const data = getCellData(stringIndex, fret);
-        const cell = document.createElement('button');
-        cell.type = 'button';
-        cell.className = `fret-cell ${fret === 0 ? 'is-open' : ''}`;
-        cell.dataset.stringIndex = String(stringIndex);
-        cell.dataset.fret = String(fret);
-        cell.setAttribute('aria-label', `${data.note} on string ${6 - stringIndex}, fret ${fret}`);
-        cell.innerHTML = `<span class="fret-note">${data.note}</span>`;
-        cell.addEventListener('click', () => handleFretClick(data));
-        els.fretboard.appendChild(cell);
-      }
-    });
-
-    paintSelections();
-  }
-
-  function paintSelections() {
-    document.querySelectorAll('.fret-cell').forEach((cell) => {
-      cell.classList.remove('is-first', 'is-second', 'is-quiz-target');
-      const stringIndex = Number(cell.dataset.stringIndex);
-      const fret = Number(cell.dataset.fret);
-      const matchIndex = state.selected.findIndex(item => item.stringIndex === stringIndex && item.fret === fret);
-      if (matchIndex === 0) cell.classList.add('is-first');
-      if (matchIndex === 1) cell.classList.add('is-second');
-
-      if (state.mode === 'quiz' && state.quiz.notes.some(item => item.stringIndex === stringIndex && item.fret === fret)) {
-        cell.classList.add('is-quiz-target');
-      }
-    });
-  }
-
-  function handleFretClick(data) {
-    if (state.mode === 'quiz') return;
-
-    if (state.selected.length >= 2) state.selected = [];
-    state.selected.push(data);
-    playNote(data.midi, state.selected.length === 2 ? .16 : 0);
-    paintSelections();
-    updateExploreResult();
-  }
-
-  function updateExploreResult() {
-    const [first, second] = state.selected;
-    els.firstNote.textContent = first ? first.note : '—';
-    els.secondNote.textContent = second ? second.note : '—';
-
-    if (!first || !second) {
-      els.intervalName.textContent = 'Pick two notes';
-      els.intervalBadge.textContent = '—';
-      els.intervalDetail.textContent = 'Tap any fret, then choose a second note to reveal the interval.';
-      els.playButton.disabled = true;
-      return;
-    }
-
-    const interval = normalizeInterval(first.midi, second.midi);
-    const direction = second.midi >= first.midi ? 'ascending' : 'descending';
-    els.intervalName.textContent = interval.long;
-    els.intervalBadge.textContent = interval.short;
-    els.intervalDetail.textContent = `${first.note} to ${second.note} is a ${direction} ${interval.long.toLowerCase()}.`;
-    els.playButton.disabled = false;
-  }
-
-  function clearSelections() {
-    state.selected = [];
-    paintSelections();
-    updateExploreResult();
-  }
-
-  async function enableAudio() {
-    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextCtor) {
-      els.audioLabel.textContent = 'Audio unavailable';
-      return;
-    }
-
-    if (!state.audioContext) state.audioContext = new AudioContextCtor();
-    if (state.audioContext.state === 'suspended') await state.audioContext.resume();
-
-    state.audioEnabled = true;
-    els.audioButton.classList.add('is-enabled');
-    els.audioButton.setAttribute('aria-pressed', 'true');
-    els.audioLabel.textContent = 'Audio enabled';
-    playNote(64);
-  }
-
-  function playNote(midi, delay = 0) {
-    if (!state.audioEnabled || !state.audioContext) return;
-    const context = state.audioContext;
-    const now = context.currentTime + delay;
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(midiToFrequency(midi), now);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.18, now + 0.025);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.78);
-
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.start(now);
-    oscillator.stop(now + 0.82);
-  }
-
-  function playSelectedInterval() {
-    if (state.selected.length !== 2) return;
-    playNote(state.selected[0].midi);
-    playNote(state.selected[1].midi, .42);
-  }
-
-  function switchMode(mode) {
-    state.mode = mode;
-    els.modeButtons.forEach(button => button.classList.toggle('is-active', button.dataset.mode === mode));
-
-    if (mode === 'quiz') {
-      els.moduleDescription.textContent = 'Identify the interval between the highlighted notes. Build speed, recognition, and musical instinct.';
-      els.quizCard.classList.remove('is-hidden');
-      els.fretboardHint.textContent = 'The two highlighted notes form the quiz question. Choose the interval below.';
-      clearSelections();
-      createQuizQuestion();
-    } else {
-      els.moduleDescription.textContent = 'Choose any two notes on the fretboard. Hear them, see them, and learn the distance between them.';
-      els.quizCard.classList.add('is-hidden');
-      els.fretboardHint.textContent = 'Tap two frets. The first note is gold, the second is violet.';
-      state.quiz.notes = [];
-      paintSelections();
-    }
-  }
-
-  function makeQuizNotePair() {
-    const stringA = Math.floor(Math.random() * STANDARD_TUNING.length);
-    const stringB = Math.floor(Math.random() * STANDARD_TUNING.length);
-    const fretA = Math.floor(Math.random() * (state.fretCount + 1));
-    const fretB = Math.floor(Math.random() * (state.fretCount + 1));
-    const first = getCellData(stringA, fretA);
-    const second = getCellData(stringB, fretB);
-    const interval = normalizeInterval(first.midi, second.midi);
-    return { first, second, interval };
-  }
-
-  function createQuizQuestion() {
-    const question = makeQuizNotePair();
-    state.quiz.notes = [question.first, question.second];
-    state.quiz.answerLocked = false;
-    state.quiz.correct = question.interval;
-
-    els.quizProgress.textContent = `Question ${state.quiz.questionNumber}`;
-    els.quizNotes.textContent = `${question.first.note} → ${question.second.note}`;
-    els.quizPrompt.textContent = 'Which interval do these notes create?';
-    els.quizChoices.innerHTML = '';
-
-    const pool = INTERVALS.filter(item => item.semitones <= 11 && item.short !== question.interval.short);
-    const distractors = shuffle(pool).slice(0, 3);
-    const choices = shuffle([question.interval, ...distractors]);
-
-    choices.forEach(choice => {
-      const button = els.choiceTemplate.content.firstElementChild.cloneNode(true);
-      button.textContent = `${choice.short} · ${choice.long}`;
-      button.addEventListener('click', () => answerQuiz(choice, button));
-      els.quizChoices.appendChild(button);
-    });
-
-    paintSelections();
-    playNote(question.first.midi);
-    playNote(question.second.midi, .38);
-  }
-
-  function answerQuiz(choice, selectedButton) {
-    if (state.quiz.answerLocked) return;
-    state.quiz.answerLocked = true;
-
-    const correct = choice.short === state.quiz.correct.short;
-    const allButtons = [...els.quizChoices.querySelectorAll('.quiz-choice')];
-    allButtons.forEach(button => {
-      if (button.textContent.startsWith(state.quiz.correct.short)) button.classList.add('is-correct');
-    });
-
-    if (correct) {
-      state.quiz.score += 1;
-      state.quiz.streak += 1;
-      els.quizPrompt.textContent = `Correct — ${state.quiz.correct.long}.`;
-    } else {
-      state.quiz.streak = 0;
-      selectedButton.classList.add('is-wrong');
-      els.quizPrompt.textContent = `Not quite — it is a ${state.quiz.correct.long}.`;
-    }
-
-    els.quizScore.textContent = String(state.quiz.score);
-    els.quizStreak.textContent = String(state.quiz.streak);
-
-    window.setTimeout(() => {
-      state.quiz.questionNumber += 1;
-      createQuizQuestion();
-    }, 1150);
-  }
-
-  function shuffle(items) {
-    return [...items].sort(() => Math.random() - .5);
-  }
-
-  els.audioButton.addEventListener('click', enableAudio);
-  els.playButton.addEventListener('click', playSelectedInterval);
-  els.clearButton.addEventListener('click', clearSelections);
-  els.modeButtons.forEach(button => button.addEventListener('click', () => switchMode(button.dataset.mode)));
-  els.fretCount.addEventListener('change', (event) => {
-    state.fretCount = Number(event.target.value);
-    if (state.mode === 'quiz') createQuizQuestion();
-    createFretboard();
   });
+}
+function setModule(name){ state.module=name; $('module-title').textContent=name; $('module-menu').hidden=true; $('module-picker-button').setAttribute('aria-expanded','false'); resetSelection(); }
+function setMode(mode){ state.mode=mode; document.querySelectorAll('.mode-button').forEach(btn=>btn.classList.toggle('active-mode',btn.dataset.mode===mode)); $('quiz-controls').hidden=mode!=='quiz'; if(mode==='quiz') $('result-text').textContent='Choose Quiz when you are ready, then press Begin.'; else safeUpdateResults(); }
+function syncSound(on){ state.soundOn=on; $('sound-toggle').classList.toggle('active-toggle',on); $('sound-toggle').setAttribute('aria-pressed',String(on)); $('settings-sound-checkbox').checked=on; }
 
-  createFretboard();
-  updateExploreResult();
-})();
+$('study-button').addEventListener('click',()=>{ switchScreen('study'); renderFretboard(); safeUpdateResults(); });
+$('play-button').addEventListener('click',()=>switchScreen('play'));
+$('back-home-button').addEventListener('click',()=>switchScreen('home'));
+$('back-from-play-button').addEventListener('click',()=>switchScreen('home'));
+$('module-picker-button').addEventListener('click',()=>{ const menu=$('module-menu'); menu.hidden=!menu.hidden; $('module-picker-button').setAttribute('aria-expanded',String(!menu.hidden)); });
+document.querySelectorAll('#module-menu button').forEach(btn=>btn.addEventListener('click',()=>setModule(btn.dataset.module)));
+document.querySelectorAll('.mode-button').forEach(btn=>btn.addEventListener('click',()=>setMode(btn.dataset.mode)));
+$('decrease-frets').addEventListener('click',()=>{ state.maxFret=Math.max(12,state.maxFret-1); $('fret-label').textContent=`Frets: 0–${state.maxFret}`; renderFretboard(); });
+$('increase-frets').addEventListener('click',()=>{ state.maxFret=Math.min(24,state.maxFret+1); $('fret-label').textContent=`Frets: 0–${state.maxFret}`; renderFretboard(); });
+$('notes-toggle').addEventListener('click',()=>{ state.showNotes=!state.showNotes; $('notes-toggle').classList.toggle('active-toggle',state.showNotes); $('notes-toggle').setAttribute('aria-pressed',String(state.showNotes)); renderFretboard(); });
+$('interval-toggle').addEventListener('click',()=>{ state.showIntervals=!state.showIntervals; $('interval-toggle').classList.toggle('active-toggle',state.showIntervals); $('interval-toggle').setAttribute('aria-pressed',String(state.showIntervals)); renderFretboard(); });
+$('sound-toggle').addEventListener('click',()=>syncSound(!state.soundOn));
+$('quiz-begin-button').addEventListener('click',()=>{ resetSelection(); $('result-text').textContent='Quiz shell enabled. Interval question generation is the next functional layer.'; });
+function openSettings(){ $('settings-overlay').hidden=false; }
+function closeSettings(){ $('settings-overlay').hidden=true; }
+$('home-settings-button').addEventListener('click',openSettings); $('study-settings-button').addEventListener('click',openSettings); $('close-settings-button').addEventListener('click',closeSettings); $('close-settings-done').addEventListener('click',closeSettings);
+$('settings-fret-select').addEventListener('change',(e)=>{ state.maxFret=Number(e.target.value); $('fret-label').textContent=`Frets: 0–${state.maxFret}`; renderFretboard(); });
+$('settings-sound-checkbox').addEventListener('change',(e)=>syncSound(e.target.checked));
+$('settings-overlay').addEventListener('click',(e)=>{ if(e.target===$('settings-overlay')) closeSettings(); });
+renderFretboard(); safeUpdateResults();

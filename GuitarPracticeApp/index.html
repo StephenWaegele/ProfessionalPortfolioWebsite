@@ -3,117 +3,123 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b1020" />
-  <title>Fretwise | Guitar Practice</title>
+  <meta name="theme-color" content="#f4f2ee" />
+  <title>Guitar Practice App</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <main class="app-shell">
-    <header class="topbar">
-      <div class="brand-lockup">
-        <p class="eyebrow">GUITAR PRACTICE</p>
-        <h1>Fret<span>wise</span></h1>
-      </div>
-
-      <button id="audio-button" class="audio-button" type="button" aria-pressed="false">
-        <span class="audio-icon" aria-hidden="true">♪</span>
-        <span id="audio-button-label">Enable audio</span>
-      </button>
-    </header>
-
-    <section class="hero-card" aria-labelledby="module-title">
-      <div>
-        <p class="module-label">MODULE 01</p>
-        <h2 id="module-title">Intervals</h2>
-        <p id="module-description">Choose any two notes on the fretboard. Hear them, see them, and learn the distance between them.</p>
-      </div>
-
-      <div class="mode-switch" role="group" aria-label="Practice mode">
-        <button class="mode-button is-active" type="button" data-mode="explore">Explore</button>
-        <button class="mode-button" type="button" data-mode="quiz">Quiz</button>
+    <section id="home-screen" class="screen home-screen active-screen" aria-label="Home">
+      <button id="home-settings-button" class="icon-button home-settings" type="button" aria-label="Open settings">⚙</button>
+      <div class="home-center">
+        <p class="app-kicker">GUITAR PRACTICE APP</p>
+        <h1>Guitar<br />Practice</h1>
+        <p class="home-subtitle">A focused workspace for learning the fretboard.</p>
+        <div class="home-actions">
+          <button id="play-button" class="home-action-button play-action" type="button">
+            <span>Play</span>
+            <small>Timed drills and games</small>
+          </button>
+          <button id="study-button" class="home-action-button study-action" type="button">
+            <span>Study</span>
+            <small>Explore theory on the fretboard</small>
+          </button>
+        </div>
       </div>
     </section>
 
-    <section class="workspace">
-      <section class="panel results-panel" aria-live="polite">
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">CURRENT INTERVAL</p>
-            <h3 id="interval-name">Pick two notes</h3>
-          </div>
-          <span id="interval-badge" class="interval-badge">—</span>
-        </div>
-
-        <p id="interval-detail" class="interval-detail">Tap any fret, then choose a second note to reveal the interval.</p>
-
-        <div class="selected-notes" aria-label="Selected notes">
-          <div class="note-readout">
-            <span class="note-readout-label">First note</span>
-            <strong id="first-note">—</strong>
-          </div>
-          <div class="note-readout-arrow" aria-hidden="true">→</div>
-          <div class="note-readout">
-            <span class="note-readout-label">Second note</span>
-            <strong id="second-note">—</strong>
+    <section id="study-screen" class="screen study-screen" aria-label="Study workspace">
+      <header class="study-header">
+        <button id="back-home-button" class="icon-button" type="button" aria-label="Back to home">‹</button>
+        <div class="module-picker-wrap">
+          <button id="module-picker-button" class="module-picker-button" type="button" aria-expanded="false">
+            <span id="module-title">Intervals</span><span class="chevron">⌄</span>
+          </button>
+          <div id="module-menu" class="module-menu" hidden>
+            <button type="button" data-module="Intervals">Intervals</button>
+            <button type="button" data-module="Chords">Chords</button>
+            <button type="button" data-module="Scales">Scales</button>
+            <button type="button" data-module="Arpeggios">Arpeggios</button>
+            <button type="button" data-module="Pitch Training">Pitch Training</button>
           </div>
         </div>
+        <button id="study-settings-button" class="icon-button" type="button" aria-label="Open study settings">⚙</button>
+      </header>
 
-        <div class="action-row">
-          <button id="play-interval-button" class="primary-button" type="button" disabled>Play interval</button>
-          <button id="clear-button" class="secondary-button" type="button">Clear</button>
+      <section class="study-workspace">
+        <div class="toolbar">
+          <div class="fret-control">
+            <span id="fret-label">Frets: 0–12</span>
+            <div class="stepper" aria-label="Fret count controls">
+              <button id="decrease-frets" type="button" aria-label="Decrease fret count">−</button>
+              <button id="increase-frets" type="button" aria-label="Increase fret count">+</button>
+            </div>
+          </div>
+          <div class="toolbar-icons" aria-label="Display controls">
+            <button id="notes-toggle" class="tool-toggle" type="button" aria-pressed="false" title="Show note names">♪</button>
+            <button id="interval-toggle" class="tool-toggle" type="button" aria-pressed="false" title="Show interval labels">I</button>
+            <button id="sound-toggle" class="tool-toggle active-toggle" type="button" aria-pressed="true" title="Toggle sound">⌁</button>
+          </div>
         </div>
+
+        <section class="results-panel" aria-live="polite">
+          <div class="results-topline">
+            <h2>Results</h2>
+            <div class="mode-switch" role="group" aria-label="Study mode">
+              <button class="mode-button active-mode" type="button" data-mode="explore">Explore</button>
+              <button class="mode-button" type="button" data-mode="quiz">Quiz</button>
+            </div>
+          </div>
+          <div id="result-content" class="result-content">
+            <p id="result-text">Tap notes on the fretboard to begin.</p>
+          </div>
+          <div id="quiz-controls" class="quiz-controls" hidden>
+            <button id="quiz-begin-button" class="quiz-begin" type="button">Begin</button>
+            <span id="quiz-status">10 questions · 10 seconds</span>
+          </div>
+        </section>
+
+        <section class="fretboard-section" aria-label="Interactive guitar fretboard">
+          <div id="fretboard" class="fretboard"></div>
+        </section>
       </section>
+    </section>
 
-      <section id="quiz-card" class="panel quiz-card is-hidden" aria-live="polite">
-        <div class="quiz-topline">
-          <p class="eyebrow">INTERVAL QUIZ</p>
-          <span id="quiz-progress" class="quiz-progress">Question 1</span>
-        </div>
-
-        <h3 id="quiz-prompt">Which interval do these notes create?</h3>
-        <p id="quiz-notes" class="quiz-notes">Select two notes on the fretboard.</p>
-
-        <div id="quiz-choices" class="quiz-choices"></div>
-
-        <div class="quiz-stats">
-          <div>
-            <span>Score</span>
-            <strong id="quiz-score">0</strong>
-          </div>
-          <div>
-            <span>Streak</span>
-            <strong id="quiz-streak">0</strong>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel fretboard-panel">
-        <div class="fretboard-header">
-          <div>
-            <p class="eyebrow">INTERACTIVE FRETBOARD</p>
-            <h3>Standard tuning</h3>
-          </div>
-          <label class="fret-select-label" for="fret-count">Frets
-            <select id="fret-count">
-              <option value="8">8</option>
-              <option value="12" selected>12</option>
-              <option value="15">15</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="fretboard-wrap">
-          <div id="fretboard" class="fretboard" aria-label="Interactive guitar fretboard"></div>
-        </div>
-
-        <p id="fretboard-hint" class="fretboard-hint">Tap two frets. The first note is gold, the second is violet.</p>
-      </section>
+    <section id="play-screen" class="screen placeholder-screen" aria-label="Play Studio">
+      <header class="study-header">
+        <button id="back-from-play-button" class="icon-button" type="button" aria-label="Back to home">‹</button>
+        <h2>Play Studio</h2>
+        <span class="header-spacer"></span>
+      </header>
+      <div class="placeholder-content">
+        <p class="app-kicker">COMING NEXT</p>
+        <h1>Play Studio</h1>
+        <p>Timed drills, scores, streaks, and game modes will live here. The Study workspace is the active build.</p>
+      </div>
     </section>
   </main>
 
-  <template id="choice-template">
-    <button class="quiz-choice" type="button"></button>
-  </template>
+  <div id="settings-overlay" class="overlay" hidden>
+    <div class="settings-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="settings-card-header">
+        <h2 id="settings-title">Settings</h2>
+        <button id="close-settings-button" class="icon-button" type="button" aria-label="Close settings">×</button>
+      </div>
+      <label class="settings-row">Default fret count
+        <select id="settings-fret-select">
+          <option value="12">12 frets</option>
+          <option value="15">15 frets</option>
+          <option value="18">18 frets</option>
+          <option value="21">21 frets</option>
+          <option value="24">24 frets</option>
+        </select>
+      </label>
+      <label class="settings-row toggle-row">Sound
+        <input id="settings-sound-checkbox" type="checkbox" checked />
+      </label>
+      <button id="close-settings-done" class="done-button" type="button">Done</button>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>
