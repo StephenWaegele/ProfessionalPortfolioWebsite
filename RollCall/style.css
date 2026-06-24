@@ -48,6 +48,13 @@ button { -webkit-tap-highlight-color: transparent; }
   padding: clamp(1.5rem, 4vw, 3.25rem);
 }
 
+.title-row {
+  display: grid;
+  grid-template-columns: auto max-content;
+  align-items: center;
+  gap: 1rem;
+}
+
 .eyebrow { margin: 0; color: var(--purple); font-size: .76rem; font-weight: 900; letter-spacing: .18em; }
 .new-game-card h1, .winner-card h1 {
   margin: .2rem 0 .35rem;
