@@ -32,6 +32,14 @@
           the letter count.
         </p>
 
+        <button
+          id="how-to-play-new-game-button"
+          class="text-button subtle-button"
+          type="button"
+        >
+          How to Play
+        </button>
+
         <div class="player-entry-header">
           <h2>Players</h2>
 
@@ -181,6 +189,12 @@
         </select>
       </label>
 
+      <div class="settings-actions">
+        <button id="settings-how-to-play-button" class="text-button" type="button">How to Play</button>
+        <button id="settings-change-winner-button" class="text-button" type="button">Change Round Winner</button>
+        <button id="settings-dice-stats-button" class="text-button" type="button">Dice Statistics</button>
+      </div>
+
       <div class="settings-player-header">
         <h3>Players</h3>
 
@@ -205,6 +219,94 @@
       >
         Save settings
       </button>
+    </form>
+  </dialog>
+
+  <dialog id="how-to-play-dialog" class="dialog-modal">
+    <form method="dialog" class="dialog-card">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">HOW TO PLAY</p>
+          <h2>How to Play</h2>
+        </div>
+
+        <button
+          class="icon-button dark-icon"
+          type="submit"
+          aria-label="Close how to play"
+        >
+          ×
+        </button>
+      </div>
+
+      <div class="dialog-content">
+        <p>🎲 Roll the dice to reveal a category and letter count.</p>
+        <p>🏃 Race to shout a word that fits the category and contains exactly that many letters. You only get one guess per round, so make it count!</p>
+        <p>⭐ Win the round to earn points equal to the dice total.</p>
+        <p>🧠 Doubles trigger special memory rounds and increase the point multiplier. Consecutive doubles can lead to huge point swings!</p>
+        <p>🏆 First player to 100 points wins!</p>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="change-round-winner-dialog" class="dialog-modal">
+    <form class="dialog-card">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">MODIFY ROUND</p>
+          <h2>Change Round Winner</h2>
+        </div>
+
+        <button
+          class="icon-button dark-icon"
+          type="button"
+          aria-label="Close change round winner"
+          data-close-dialog
+        >
+          ×
+        </button>
+      </div>
+
+      <div id="change-winner-content" class="dialog-content"></div>
+
+      <div class="dialog-actions">
+        <button id="change-winner-save-button" class="primary-button" type="button">Save</button>
+        <button class="text-button" type="button" data-close-dialog>Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dice-stats-dialog" class="dialog-modal">
+    <form method="dialog" class="dialog-card">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">DIAGNOSTICS</p>
+          <h2>Dice Statistics</h2>
+        </div>
+
+        <button
+          class="icon-button dark-icon"
+          type="submit"
+          aria-label="Close dice statistics"
+        >
+          ×
+        </button>
+      </div>
+
+      <div class="dialog-content stats-grid">
+        <div class="stat-row"><span>Total Rolls</span><strong id="stat-total-rolls">0</strong></div>
+        <div class="stat-row"><span>Total Doubles</span><strong id="stat-total-doubles">0</strong></div>
+        <div class="stat-row"><span>Consecutive Doubles</span><strong id="stat-consecutive-doubles">0</strong></div>
+        <div class="stat-row"><span>Longest Doubles Streak</span><strong id="stat-longest-doubles-streak">0</strong></div>
+        <div class="stat-row"><span>Double 1s</span><strong id="stat-double-1s">0</strong></div>
+        <div class="stat-row"><span>Double 2s</span><strong id="stat-double-2s">0</strong></div>
+        <div class="stat-row"><span>Double 3s</span><strong id="stat-double-3s">0</strong></div>
+        <div class="stat-row"><span>Double 4s</span><strong id="stat-double-4s">0</strong></div>
+        <div class="stat-row"><span>Double 5s</span><strong id="stat-double-5s">0</strong></div>
+        <div class="stat-row"><span>Double 6s</span><strong id="stat-double-6s">0</strong></div>
+        <div class="stat-row"><span>Expected Doubles %</span><strong id="stat-expected-doubles">16.7%</strong></div>
+        <div class="stat-row"><span>Actual Doubles %</span><strong id="stat-actual-doubles">0.0%</strong></div>
+      </div>
     </form>
   </dialog>
 

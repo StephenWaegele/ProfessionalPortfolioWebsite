@@ -26,10 +26,23 @@ const state = {
   usedCategoryIndexes: [],
   currentRound: null,
   lastStandardRound: null,
+  lastAwardedRound: null,
   doublesStreak: 0,
   timerSeconds: 60,
   timerId: null,
-  phase: "setup"
+  phase: "setup",
+  stats: {
+    totalRolls: 0,
+    totalDoubles: 0,
+    consecutiveDoubles: 0,
+    longestDoublesStreak: 0,
+    double1s: 0,
+    double2s: 0,
+    double3s: 0,
+    double4s: 0,
+    double5s: 0,
+    double6s: 0
+  }
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -58,6 +71,27 @@ const timerDurationSelect = $("#timer-duration-select");
 const winnerName = $("#winner-name");
 const winnerScore = $("#winner-score");
 const playAgainButton = $("#play-again-button");
+const howToPlayNewGameButton = $("#how-to-play-new-game-button");
+const settingsHowToPlayButton = $("#settings-how-to-play-button");
+const changeRoundWinnerButton = $("#settings-change-winner-button");
+const diceStatsButton = $("#settings-dice-stats-button");
+const howToPlayDialog = $("#how-to-play-dialog");
+const changeRoundWinnerDialog = $("#change-round-winner-dialog");
+const changeWinnerContent = $("#change-winner-content");
+const changeWinnerSaveButton = $("#change-winner-save-button");
+const diceStatsDialog = $("#dice-stats-dialog");
+const statTotalRolls = $("#stat-total-rolls");
+const statTotalDoubles = $("#stat-total-doubles");
+const statConsecutiveDoubles = $("#stat-consecutive-doubles");
+const statLongestDoublesStreak = $("#stat-longest-doubles-streak");
+const statDouble1s = $("#stat-double-1s");
+const statDouble2s = $("#stat-double-2s");
+const statDouble3s = $("#stat-double-3s");
+const statDouble4s = $("#stat-double-4s");
+const statDouble5s = $("#stat-double-5s");
+const statDouble6s = $("#stat-double-6s");
+const statExpectedDoubles = $("#stat-expected-doubles");
+const statActualDoubles = $("#stat-actual-doubles");
 
 function makePlayer(name = "") {
   return { id: crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`, name, score: 0 };
@@ -157,6 +191,63 @@ function randomDie() {
   return Math.floor(Math.random() * 6) + 1;
 }
 
+function resetDiceStats() {
+  state.stats = {
+    totalRolls: 0,
+    totalDoubles: 0,
+    consecutiveDoubles: 0,
+    longestDoublesStreak: 0,
+    double1s: 0,
+    double2s: 0,
+    double3s: 0,
+    double4s: 0,
+    double5s: 0,
+    double6s: 0
+  };
+  updateDiceStatsDisplay();
+}
+
+function updateDiceStatsDisplay() {
+  const { totalRolls, totalDoubles, consecutiveDoubles, longestDoublesStreak, double1s, double2s, double3s, double4s, double5s, double6s } = state.stats;
+  statTotalRolls.textContent = String(totalRolls);
+  statTotalDoubles.textContent = String(totalDoubles);
+  statConsecutiveDoubles.textContent = String(consecutiveDoubles);
+  statLongestDoublesStreak.textContent = String(longestDoublesStreak);
+  statDouble1s.textContent = String(double1s);
+  statDouble2s.textContent = String(double2s);
+  statDouble3s.textContent = String(double3s);
+  statDouble4s.textContent = String(double4s);
+  statDouble5s.textContent = String(double5s);
+  statDouble6s.textContent = String(double6s);
+  statExpectedDoubles.textContent = "16.7%";
+  statActualDoubles.textContent = totalRolls === 0 ? "0.0%" : `${(totalDoubles / totalRolls * 100).toFixed(1)}%`;
+}
+
+function trackDiceRoll(dieOne, dieTwo) {
+  state.stats.totalRolls += 1;
+  if (dieOne === dieTwo) {
+    state.stats.totalDoubles += 1;
+    state.stats.consecutiveDoubles += 1;
+    state.stats.longestDoublesStreak = Math.max(state.stats.longestDoublesStreak, state.stats.consecutiveDoubles);
+    if (dieOne === 1) state.stats.double1s += 1;
+    if (dieOne === 2) state.stats.double2s += 1;
+    if (dieOne === 3) state.stats.double3s += 1;
+    if (dieOne === 4) state.stats.double4s += 1;
+    if (dieOne === 5) state.stats.double5s += 1;
+    if (dieOne === 6) state.stats.double6s += 1;
+  } else {
+    state.stats.consecutiveDoubles = 0;
+  }
+  updateDiceStatsDisplay();
+}
+
+function getDiceRoll() {
+  const dieOne = randomDie();
+  const dieTwo = randomDie();
+  trackDiceRoll(dieOne, dieTwo);
+  return { dieOne, dieTwo };
+}
+
 function nextCategory() {
   if (state.usedCategoryIndexes.length >= categories.length) state.usedCategoryIndexes = [];
   const eligible = categories.map((_, i) => i).filter((i) => !state.usedCategoryIndexes.includes(i));
@@ -199,9 +290,10 @@ function playRollSound() {
 }
 
 function rollNonDoubles() {
-  let dieOne = randomDie();
-  let dieTwo = randomDie();
-  while (dieOne === dieTwo) dieTwo = randomDie();
+  let { dieOne, dieTwo } = getDiceRoll();
+  while (dieOne === dieTwo) {
+    ({ dieOne, dieTwo } = getDiceRoll());
+  }
   return { dieOne, dieTwo };
 }
 
@@ -211,8 +303,7 @@ function startRound() {
 
   // The first playable round must establish a category and letter-count target.
   // If the dice happen to match before that exists, roll again automatically.
-  let dieOne = randomDie();
-  let dieTwo = randomDie();
+  let { dieOne, dieTwo } = getDiceRoll();
   if (!state.lastStandardRound && dieOne === dieTwo) {
     ({ dieOne, dieTwo } = rollNonDoubles());
   }
@@ -318,6 +409,7 @@ function awardRound(playerId) {
   const points = state.currentRound.points;
   player.score += points;
   state.currentRound.winnerId = player.id;
+  state.lastAwardedRound = { winnerId: player.id, points };
   state.phase = "round-over";
   roundStatus.textContent = "Round complete";
   setRoundAction("ROLL", { disabled: false, rollReady: true });
@@ -356,7 +448,9 @@ function startGame() {
   state.players = namedPlayers;
   state.usedCategoryIndexes = [];
   state.lastStandardRound = null;
+  state.lastAwardedRound = null;
   state.doublesStreak = 0;
+  resetDiceStats();
   state.players.forEach((player) => { player.score = 0; });
   newGameScreen.classList.add("hidden");
   winnerScreen.classList.add("hidden");
@@ -372,6 +466,66 @@ function openSettings() {
   settingsDialog.showModal();
 }
 
+function openHowToPlay() {
+  howToPlayDialog.showModal();
+}
+
+function openChangeRoundWinner() {
+  changeWinnerContent.innerHTML = "";
+  if (!state.lastAwardedRound) {
+    changeWinnerContent.textContent = "No completed round is available to modify.";
+    changeWinnerSaveButton.disabled = true;
+  } else {
+    const awardedPlayer = state.players.find((player) => player.id === state.lastAwardedRound.winnerId);
+    const awardedName = awardedPlayer ? displayName(awardedPlayer, state.players.indexOf(awardedPlayer)) : "Player";
+    const summary = document.createElement("div");
+    summary.className = "change-winner-summary";
+    summary.innerHTML = `<p>Last Round</p><p class="summary-detail">+${state.lastAwardedRound.points} points awarded to ${awardedName}</p><p>Select the correct winner:</p>`;
+
+    const options = document.createElement("div");
+    options.className = "change-winner-options";
+    state.players.forEach((player, index) => {
+      const option = document.createElement("label");
+      option.className = "radio-row";
+      option.innerHTML = `<input type="radio" name="winner-option" value="${player.id}"${player.id === state.lastAwardedRound.winnerId ? " checked" : ""}>
+        <span>${displayName(player, index)}</span>`;
+      options.append(option);
+    });
+
+    changeWinnerContent.append(summary, options);
+    changeWinnerSaveButton.disabled = false;
+  }
+  changeRoundWinnerDialog.showModal();
+}
+
+function applyRoundWinnerChange() {
+  if (!state.lastAwardedRound) return;
+  const selected = changeWinnerContent.querySelector("input[name='winner-option']:checked");
+  if (!selected) return;
+  const newWinnerId = selected.value;
+  const originalWinnerId = state.lastAwardedRound.winnerId;
+  if (newWinnerId === originalWinnerId) {
+    changeRoundWinnerDialog.close();
+    return;
+  }
+
+  const originalPlayer = state.players.find((player) => player.id === originalWinnerId);
+  const newPlayer = state.players.find((player) => player.id === newWinnerId);
+  if (!originalPlayer || !newPlayer) {
+    changeRoundWinnerDialog.close();
+    return;
+  }
+
+  originalPlayer.score -= state.lastAwardedRound.points;
+  newPlayer.score += state.lastAwardedRound.points;
+  state.lastAwardedRound.winnerId = newWinnerId;
+  if (state.currentRound && state.currentRound.winnerId === originalWinnerId) {
+    state.currentRound.winnerId = newWinnerId;
+  }
+  renderPlayersBar();
+  changeRoundWinnerDialog.close();
+}
+
 function saveSettings() {
   state.timerSeconds = Number(timerDurationSelect.value);
   renderAllPlayerLists();
@@ -384,6 +538,7 @@ function resetToNewGame() {
   state.usedCategoryIndexes = [];
   state.currentRound = null;
   state.lastStandardRound = null;
+  state.lastAwardedRound = null;
   state.doublesStreak = 0;
   state.phase = "setup";
   categoryDisplay.classList.remove("revealed");
@@ -404,6 +559,15 @@ settingsAddPlayerButton.addEventListener("click", () => {
   state.players.push(makePlayer(""));
   renderAllPlayerLists();
   settingsPlayerList.querySelector(".name-row:last-child input")?.focus();
+});
+
+howToPlayNewGameButton.addEventListener("click", openHowToPlay);
+settingsHowToPlayButton.addEventListener("click", openHowToPlay);
+changeRoundWinnerButton.addEventListener("click", openChangeRoundWinner);
+diceStatsButton.addEventListener("click", () => diceStatsDialog.showModal());
+changeWinnerSaveButton.addEventListener("click", applyRoundWinnerChange);
+changeRoundWinnerDialog.querySelectorAll("[data-close-dialog]").forEach((button) => {
+  button.addEventListener("click", () => changeRoundWinnerDialog.close());
 });
 
 startGameButton.addEventListener("click", startGame);
