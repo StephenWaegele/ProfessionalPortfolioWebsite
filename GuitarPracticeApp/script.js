@@ -46,7 +46,9 @@ function renderFretboard(){
       const midi=string.midi+fret; const cell=document.createElement('button'); cell.type='button'; cell.className='fret-cell'; cell.dataset.fret=fret; if(inlays.has(fret)) cell.classList.add('inlay');
       if(stringIndex===0 && inlays.has(fret)){
         const marker=document.createElement('div'); marker.className=`fret-marker ${fret===12||fret===24?'double-marker':'single-marker'}`;
-        marker.style.gridColumn=`${fret+2}`; marker.style.gridRow='1 / span 6'; board.appendChild(marker);
+        marker.style.gridColumn=`${fret+2}`;
+        marker.style.gridRow='1 / span 6';
+        board.appendChild(marker);
       }
       const dot=document.createElement('span'); dot.className='note-dot';
       const pos=state.selected.findIndex(n=>n.stringIndex===stringIndex && n.fret===fret);
