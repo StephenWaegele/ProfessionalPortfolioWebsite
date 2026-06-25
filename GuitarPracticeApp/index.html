@@ -31,11 +31,15 @@
     <section id="study-screen" class="screen study-screen" aria-label="Study workspace">
       <header class="study-header">
         <button id="back-home-button" class="icon-button" type="button" aria-label="Back to home">‹</button>
-        <div class="module-picker-wrap">
-          <button id="module-picker-button" class="module-picker-button" type="button" aria-expanded="false">
-            <span id="module-title">Intervals</span><span class="chevron">⌄</span>
-          </button>
-          <div id="module-menu" class="module-menu" hidden>
+        <div class="study-title-group">
+  <h1 class="study-workspace-title">Study Workspace</h1>
+
+  <div class="module-picker-wrap">
+    <button id="module-picker-button" class="module-picker-button" type="button" aria-expanded="false">
+      <span id="module-title">Intervals</span><span class="chevron">⌄</span>
+    </button>
+
+    <div id="module-menu" class="module-menu" hidden>
             <button type="button" data-module="Intervals">Intervals</button>
             <button type="button" data-module="Chords">Chords</button>
             <button type="button" data-module="Scales">Scales</button>
@@ -43,6 +47,7 @@
             <button type="button" data-module="Pitch Training">Pitch Training</button>
           </div>
         </div>
+      </div>
         <button id="study-settings-button" class="icon-button" type="button" aria-label="Open study settings">⚙</button>
       </header>
 

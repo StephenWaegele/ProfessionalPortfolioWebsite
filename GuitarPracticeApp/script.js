@@ -43,6 +43,13 @@ function switchScreen(name) {
   state.screen = name;
 }
 
+function syncQuizButton() {
+  const button = $('quiz-begin-button');
+
+  button.textContent = state.quiz.active ? 'Stop' : 'Begin';
+  button.classList.toggle('quiz-stop', state.quiz.active);
+}
+
 function stopQuizTimer() {
   if (state.quiz.timerId) {
     clearInterval(state.quiz.timerId);
@@ -60,6 +67,7 @@ function resetQuiz() {
   state.quiz.targetMidi = null;
   state.quiz.interval = null;
   state.quiz.feedback = '';
+  syncQuizButton();
 }
 
 function resetSelection() {
@@ -235,6 +243,7 @@ function startQuiz() {
   state.selected = [];
   state.quiz.active = true;
   state.quiz.questionNumber = 1;
+  syncQuizButton();
 
   createQuizQuestion();
   startQuizTimer();
@@ -553,6 +562,14 @@ $('sound-toggle').addEventListener('click', () => {
 });
 
 $('quiz-begin-button').addEventListener('click', () => {
+  if (state.quiz.active) {
+    resetQuiz();
+    state.selected = [];
+    safeUpdateResults();
+    renderFretboard();
+    return;
+  }
+
   if (state.mode !== 'quiz') {
     setMode('quiz');
   }
@@ -592,5 +609,6 @@ $('settings-overlay').addEventListener('click', (event) => {
   }
 });
 
+setMode('explore');
 renderFretboard();
 safeUpdateResults();
