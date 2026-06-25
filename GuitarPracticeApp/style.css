@@ -53,26 +53,255 @@ button { cursor:pointer; }
 .quiz-controls { padding-top:8px; display:flex; align-items:center; gap:10px; }
 .quiz-begin, .done-button { border:0; color:white; background:var(--dark); padding:8px 13px; border-radius:10px; font-weight:800; }
 #quiz-status { color:var(--muted); font-size:.8rem; }
-.fretboard-section { padding-top:15px; overflow:hidden; }
-.fretboard { --fret-count:13; --fret-row-height:33px; position:relative; display:grid; grid-template-columns:42px repeat(var(--fret-count), minmax(0,1fr)); gap:0 4px; align-items:center; width:100%; background:linear-gradient(90deg, #7f5f3d 0%, #72583e 55%, #7f5f3d 100%); }
-.fretboard::before { content:""; position:absolute; left:42px; right:0; top:0; bottom:0; background:repeating-linear-gradient(90deg, transparent 0, transparent calc(100% / var(--fret-count) - 1px), rgba(0,0,0,.18) calc(100% / var(--fret-count) - 1px), rgba(0,0,0,.18) calc(100% / var(--fret-count)), transparent calc(100% / var(--fret-count))); pointer-events:none; }
-.fretboard::after { content:""; position:absolute; left:42px; top:0; bottom:0; width:8px; background:#4b3f2f; pointer-events:none; box-shadow:0 0 0 1px rgba(255,255,255,.05) inset; }
-.string-label { height:var(--fret-row-height); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:.78rem; font-weight:800; background:var(--paper); position:relative; z-index:2; }
-.fret-cell { height:var(--fret-row-height); position:relative; border:0; border-radius:0; background:transparent; padding:0; min-width:0; z-index:2; }
-.fret-cell::before { content:""; position:absolute; left:0; right:0; top:50%; height:1px; background:rgba(255,255,255,.14); transform:translateY(-50%); pointer-events:none; }
-.fret-cell::after { content:""; position:absolute; right:-2px; top:0; width:1px; height:100%; background:rgba(77,85,91,.15); }
-.fret-cell[data-fret="0"] { background:transparent; }
-.fret-cell[data-fret="0"]::after { width:0; }
-.note-dot { opacity:0; width:0; height:0; border-radius:999px; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:grid; place-items:center; font-size:clamp(.47rem,1.6vw,.66rem); color:transparent; background:transparent; border:0; padding:0; z-index:3; transition:opacity .18s ease, width .18s ease, height .18s ease; }
-.note-dot.root, .note-dot.target { visibility:visible; opacity:1; width:min(25px, 70%); aspect-ratio:1; background:var(--red); border:1px solid var(--red); color:white; }
-.note-dot.target { background:var(--blue); border-color:var(--blue); }
-.fret-marker { grid-row:1 / span 6; align-self:stretch; justify-self:center; position:relative; pointer-events:none; z-index:0; }
-.fret-marker::before, .fret-marker::after { content:""; position:absolute; left:50%; width:10px; height:10px; border-radius:50%; background:rgba(255,255,255,.65); transform:translateX(-50%); box-shadow:0 0 0 1px rgba(0,0,0,.08) inset; }
-.fret-marker.single-marker::before { top:50%; transform:translate(-50%,-50%); }
-.fret-marker.double-marker::before { top:29%; }
-.fret-marker.double-marker::after { top:71%; }
-.fret-cell:hover .note-dot:not(.root):not(.target) { background:transparent; }
-.placeholder-screen { padding:calc(8px + env(safe-area-inset-top)) 18px; }
+/* =========================
+   FRETBOARD GEOMETRY
+   One grid. One coordinate system.
+   ========================= */
+
+.fretboard-section {
+  padding-top: 16px;
+  overflow: hidden;
+}
+
+.fretboard {
+  --fret-count: 13;
+  --string-row-height: 44px;
+  --label-column-width: 46px;
+
+  position: relative;
+  display: grid;
+  grid-template-columns:
+    var(--label-column-width)
+    repeat(var(--fret-count), minmax(0, 1fr));
+
+  width: 100%;
+  overflow: hidden;
+
+  background:
+    linear-gradient(
+      90deg,
+      #765333 0%,
+      #896440 48%,
+      #704d30 100%
+    );
+
+  border-radius: 6px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -8px 18px rgba(35,20,9,.18);
+}
+
+/* String labels sit outside the wooden neck. */
+.string-label {
+  height: var(--string-row-height);
+  display: grid;
+  place-items: center;
+
+  background: var(--paper);
+  color: var(--muted);
+
+  font-size: .78rem;
+  font-weight: 800;
+
+  position: relative;
+  z-index: 4;
+}
+
+/* Each fret cell owns its own right-side fret wire. */
+.fret-cell {
+  position: relative;
+  height: var(--string-row-height);
+
+  border: 0;
+  border-right: 1px solid rgba(39, 26, 16, .34);
+
+  background: transparent;
+  padding: 0;
+  min-width: 0;
+
+  isolation: isolate;
+}
+
+/* Horizontal guitar string. */
+.fret-cell::before {
+  content: "";
+  position: absolute;
+
+  left: 0;
+  right: 0;
+  top: 50%;
+
+  height: 2px;
+  transform: translateY(-50%);
+
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,.46),
+    rgba(35,23,14,.32)
+  );
+
+  box-shadow: 0 1px 0 rgba(255,255,255,.08);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Nut immediately after the open-string position. */
+/* The nut is thicker and darker than normal fret wire. */
+.fret-cell[data-fret="0"] {
+  border-right: 0;
+  box-shadow: none;
+}
+
+.fret-cell[data-fret="0"]::after {
+  content: "";
+  position: absolute;
+
+  top: 0;
+  right: -3px;
+  bottom: 0;
+
+  width: 8px;
+
+  background: linear-gradient(
+    90deg,
+    #1e1813 0%,
+    #4a3b2f 38%,
+    #b6aa99 55%,
+    #2b211b 100%
+  );
+
+  box-shadow:
+    2px 0 5px rgba(0,0,0,.48),
+    inset 1px 0 0 rgba(255,255,255,.22);
+
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* Small metallic highlight on each fret wire. */
+/* Physical metal fret wire at the right edge of every playable fret. */
+.fret-cell:not([data-fret="0"])::after {
+  content: "";
+  position: absolute;
+
+  top: 0;
+  right: -2px;
+  bottom: 0;
+
+  width: 4px;
+
+  background: linear-gradient(
+    90deg,
+    rgba(41, 28, 18, .50) 0%,
+    rgba(205, 194, 176, .72) 38%,
+    rgba(255, 249, 237, .82) 52%,
+    rgba(76, 57, 40, .58) 100%
+  );
+
+  box-shadow:
+    1px 0 2px rgba(0,0,0,.35),
+    inset 1px 0 0 rgba(255,255,255,.24);
+
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Selected note markers. */
+.note-dot {
+  opacity: 0;
+
+  position: absolute;
+  left: 50%;
+  top: 50%;
+
+  width: 0;
+  height: 0;
+
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+
+  display: grid;
+  place-items: center;
+
+  color: transparent;
+  background: transparent;
+
+  font-size: clamp(.48rem, 1.5vw, .72rem);
+  font-weight: 800;
+
+  z-index: 5;
+  pointer-events: none;
+
+  transition:
+    opacity .16s ease,
+    width .16s ease,
+    height .16s ease;
+}
+
+.note-dot.root,
+.note-dot.target {
+  opacity: 1;
+
+  width: clamp(26px, 52%, 38px);
+  height: clamp(26px, 52%, 38px);
+
+  color: white;
+  border: 2px solid rgba(255,255,255,.34);
+  border-radius: 50%;
+
+  box-shadow:
+    0 3px 8px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.24);
+}
+
+.note-dot.root {
+  background: var(--red);
+}
+
+.note-dot.target {
+  background: var(--blue);
+}
+
+/* Inlay dots will be inserted inside fret cells by JavaScript. */
+.fret-inlay {
+  position: absolute;
+  left: 50%;
+
+  width: clamp(8px, 18%, 13px);
+  aspect-ratio: 1;
+
+  transform: translateX(-50%);
+  border-radius: 50%;
+
+  background: rgba(245, 235, 219, .78);
+
+  box-shadow:
+    0 1px 2px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.32);
+
+  z-index: 3;
+  pointer-events: none;
+}
+
+.fret-inlay.single {
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.fret-inlay.double-top {
+  top: 24%;
+}
+
+.fret-inlay.double-bottom {
+  bottom: 24%;
+}
+
+@media (min-width: 760px) {
+  .fretboard {
+    --string-row-height: 48px;
+    --label-column-width: 50px;
+  }
+}.placeholder-screen { padding:calc(8px + env(safe-area-inset-top)) 18px; }
 .placeholder-content { min-height:70svh; max-width:540px; margin:auto; display:flex; flex-direction:column; justify-content:center; text-align:center; }
 .placeholder-content p:last-child { max-width:420px; margin:25px auto 0; color:var(--muted); line-height:1.55; }
 .overlay { z-index:10; position:fixed; inset:0; padding:20px; display:grid; place-items:center; background:rgba(22,27,33,.31); backdrop-filter:blur(4px); }
@@ -83,7 +312,51 @@ button { cursor:pointer; }
 .settings-row select { border:1px solid var(--line); border-radius:8px; padding:7px; background:white; }
 .toggle-row input { width:18px; height:18px; }
 .done-button { width:100%; margin-top:12px; padding:12px; }
-@media (min-width:760px) { .study-workspace{padding:16px;} .fretboard { grid-template-columns:48px repeat(var(--fret-count), minmax(0,1fr)); gap:0 6px; } .fretboard { --fret-row-height:42px; } .fret-cell,.string-label{height:var(--fret-row-height);} .note-dot{width:min(30px,70%);} }
+@media (min-width: 760px) {
+  .study-workspace {
+    padding: 16px;
+  }
+}
 
 /* Keep dialogs hidden until JavaScript explicitly opens them. */
 .overlay[hidden] { display: none !important; }
+
+/* Two-line labels inside selected note circles. */
+.note-dot {
+  flex-direction: column;
+  gap: 0;
+  line-height: 1;
+  text-align: center;
+}
+
+.note-dot-note,
+.note-dot-interval {
+  display: block;
+  width: 100%;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.note-dot-note {
+  font-size: clamp(.46rem, 1.2vw, .65rem);
+  margin-bottom: 2px;
+}
+
+.note-dot-interval {
+  font-size: clamp(.42rem, 1.05vw, .57rem);
+  opacity: .86;
+}
+
+/* Quiz prompt details under the main question. */
+.quiz-timer,
+.quiz-feedback {
+  display: inline-block;
+  margin-left: 10px;
+  font-size: .83rem;
+  color: var(--muted);
+}
+
+.quiz-feedback {
+  font-weight: 800;
+  color: var(--ink);
+}
