@@ -273,7 +273,13 @@ window.Theory = (() => {
     return ['Open'];
   }
 
-  function generateCagedVoicing(rootMidi, quality, shapeName, positionName) {
+  function generateCagedVoicing(
+    rootPosition,
+    quality,
+    shapeName,
+    positionName,
+    maxFret = 24
+  ) {
     const shape = CAGED_SHAPES[shapeName];
     const template = shape && shape[quality];
 
@@ -281,16 +287,154 @@ window.Theory = (() => {
       return null;
     }
 
-    const rootPitchClass = pitchClass(rootMidi);
-    const shift = (rootPitchClass - template.rootOpenPitchClass + 12) % 12;
+    const shapeOffset =
+      (12 - template.rootOpenPitchClass) % 12;
 
-    return template.frets.map((fret) => {
-      if (fret === null) return null;
+    const shift = rootPosition + shapeOffset;
+
+    const frets = template.frets.map((fret) => {
+      if (fret === null) {
+        return null;
+      }
+
       return fret + shift;
     });
+
+    const exceedsFretboard = frets.some(
+      (fret) => fret !== null && fret > maxFret
+    );
+
+    return exceedsFretboard ? null : frets;
   }
 
-const TRIAD_STRING_SETS = {
+const FREE_BUILD_PRESETS = {
+  major: [
+    {
+      id: 'open-c',
+      label: 'Open C',
+      rootOpenPitchClass: 0,
+      frets: [0, 1, 0, 2, 3, null]
+    },
+    {
+      id: 'a-shape-barre',
+      label: 'A-shape barre',
+      rootOpenPitchClass: 9,
+      frets: [0, 2, 2, 2, 0, null]
+    },
+    {
+      id: 'e-shape-barre',
+      label: 'E-shape barre',
+      rootOpenPitchClass: 4,
+      frets: [0, 0, 1, 2, 2, 0]
+    }
+  ],
+
+  minor: [
+    {
+      id: 'a-shape-minor-barre',
+      label: 'A-shape minor barre',
+      rootOpenPitchClass: 9,
+      frets: [0, 1, 2, 2, 0, null]
+    },
+    {
+      id: 'e-shape-minor-barre',
+      label: 'E-shape minor barre',
+      rootOpenPitchClass: 4,
+      frets: [0, 0, 0, 2, 2, 0]
+    }
+  ],
+
+  dominant7: [
+    {
+      id: 'a-shape-7',
+      label: 'A-shape dominant 7',
+      rootOpenPitchClass: 9,
+      frets: [0, 2, 0, 2, 0, null]
+    },
+    {
+      id: 'e-shape-7',
+      label: 'E-shape dominant 7',
+      rootOpenPitchClass: 4,
+      frets: [0, 0, 1, 0, 2, 0]
+    }
+  ],
+
+  major7: [
+    {
+      id: 'drop2-root-1-4',
+      label: 'Drop 2 · Root position · Strings 1–4',
+      family: 'drop2',
+      inversion: 'root',
+      stringSet: '1-4'
+    },
+    {
+      id: 'drop2-first-1-4',
+      label: 'Drop 2 · 1st inversion · Strings 1–4',
+      family: 'drop2',
+      inversion: 'first',
+      stringSet: '1-4'
+    },
+    {
+      id: 'drop2-second-2-5',
+      label: 'Drop 2 · 2nd inversion · Strings 2–5',
+      family: 'drop2',
+      inversion: 'second',
+      stringSet: '2-5'
+    },
+    {
+      id: 'drop2-third-3-6',
+      label: 'Drop 2 · 3rd inversion · Strings 3–6',
+      family: 'drop2',
+      inversion: 'third',
+      stringSet: '3-6'
+    }
+  ]
+};
+
+function freeBuildPresets(type) {
+  return FREE_BUILD_PRESETS[type] || [];
+}
+
+function generateFreeBuildPreset(rootMidi, type, presetId, maxFret = 24) {
+  const preset = freeBuildPresets(type).find(
+    (item) => item.id === presetId
+  );
+
+  if (!preset) {
+    return null;
+  }
+
+  if (preset.family === 'drop2') {
+    return generateDrop2Voicing(
+      rootMidi,
+      type,
+      preset.inversion,
+      preset.stringSet,
+      maxFret
+    );
+  }
+
+  const rootPitchClass = pitchClass(rootMidi);
+
+  const shift =
+    (rootPitchClass - preset.rootOpenPitchClass + 12) % 12;
+
+  const frets = preset.frets.map((fret) => {
+    if (fret === null) {
+      return null;
+    }
+
+    return fret + shift;
+  });
+
+  const exceedsFretboard = frets.some(
+    (fret) => fret !== null && fret > maxFret
+  );
+
+  return exceedsFretboard ? null : frets;
+}
+
+  const TRIAD_STRING_SETS = {
   '1-3': {
     label: 'Strings 1–3',
     stringIndexes: [0, 1, 2]
@@ -598,6 +742,8 @@ function generateDrop2Voicing(
     drop2StringSets,
     generateTriadVoicing,
     triadStringSets,
+    freeBuildPresets,
+    generateFreeBuildPreset,
     chordTypes: CHORD_TYPES
   };
 })();

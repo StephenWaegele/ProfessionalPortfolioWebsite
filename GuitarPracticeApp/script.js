@@ -10,6 +10,7 @@ const state = {
   chords: {
     exploreMode: 'build',
     rootMidi: 0,
+    rootPosition: 0,
     quality: 'major',
     type: 'major',
     extension: 'none',
@@ -18,6 +19,7 @@ const state = {
     drop2StringSet: '1-4',
     triadInversion: 'root',
     triadStringSet: '1-3',
+    freeVoicingId: 'open-c',
     cagedShape: 'C shape',
     position: 'Open',
     generatedVoicing: [0, 1, 0, 2, 3, null],
@@ -73,7 +75,8 @@ const CHORD_BUILD_STEPPER_IDS = [
   'chord-type-select',
   'chord-extension-select',
   'chord-shape-select',
-  'chord-position-select'
+  'chord-position-select',
+  'chord-free-voicing-select'
 ];
 
 function refreshChordBuildStepper(select) {
@@ -429,10 +432,11 @@ function syncChordBuildVoicing() {
   }
 
   const voicing = Theory.generateCagedVoicing(
-    state.chords.rootMidi,
+    state.chords.rootPosition,
     state.chords.type,
     state.chords.cagedShape,
-    state.chords.position
+    state.chords.position,
+    state.maxFret
   );
 
   if (!voicing) {
@@ -455,6 +459,7 @@ function populateChordBuildControls() {
   const stringSetSelect = $('chord-string-set-select');
   const shapeSelect = $('chord-shape-select');
   const positionSelect = $('chord-position-select');
+  const freeVoicingSelect = $('chord-free-voicing-select');
 
   rootSelect.innerHTML = '';
   typeSelect.innerHTML = '';
@@ -464,11 +469,27 @@ function populateChordBuildControls() {
   stringSetSelect.innerHTML = '';
   shapeSelect.innerHTML = '';
   positionSelect.innerHTML = '';
+  freeVoicingSelect.innerHTML = '';
 
-  for (let midi = 0; midi < 12; midi += 1) {
+  const tracksCagedPosition =
+    state.chords.voicingFamily === 'CAGED';
+
+  const rootOptionCount = tracksCagedPosition ? 48 : 12;
+
+  for (let rootValue = 0; rootValue < rootOptionCount; rootValue += 1) {
     const option = document.createElement('option');
-    option.value = midi;
-    option.textContent = Theory.noteName(midi);
+
+    option.value = rootValue;
+
+    if (tracksCagedPosition) {
+      const positionNumber = Math.floor(rootValue / 12) + 1;
+
+      option.textContent =
+        `${Theory.noteName(rootValue)}${positionNumber}`;
+    } else {
+      option.textContent = Theory.noteName(rootValue);
+    }
+
     rootSelect.appendChild(option);
   }
 
@@ -482,7 +503,8 @@ function populateChordBuildControls() {
   [
     { value: 'CAGED', label: 'CAGED' },
     { value: 'Drop 2', label: 'Drop 2' },
-    { value: 'Triad', label: 'Triad' }
+    { value: 'Triad', label: 'Triad' },
+    { value: 'Free Build', label: 'Free Build' }
   ].forEach(({ value, label }) => {
     const option = document.createElement('option');
     option.value = value;
@@ -522,6 +544,28 @@ function populateChordBuildControls() {
     shapeSelect.appendChild(option);
   });
 
+const isFreeBuild = state.chords.voicingFamily === 'Free Build';
+
+if (isFreeBuild) {
+  resolveBuildChordType();
+
+  Theory.freeBuildPresets(state.chords.type).forEach(({ id, label }) => {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = label;
+    freeVoicingSelect.appendChild(option);
+  });
+
+  const hasCurrentPreset = [...freeVoicingSelect.options].some(
+    (option) => option.value === state.chords.freeVoicingId
+  );
+
+  if (!hasCurrentPreset) {
+    state.chords.freeVoicingId =
+      freeVoicingSelect.options[0]?.value || '';
+  }
+}
+
   Theory.cagePositionsForShape(state.chords.cagedShape).forEach((positionName) => {
     const option = document.createElement('option');
     option.value = positionName;
@@ -542,7 +586,10 @@ function populateChordBuildControls() {
     $('chord-extension-select').appendChild(option);
   });
 
-  rootSelect.value = state.chords.rootMidi;
+  rootSelect.value =
+    state.chords.voicingFamily === 'CAGED'
+      ? state.chords.rootPosition
+      : state.chords.rootMidi;
   typeSelect.value = state.chords.quality;
   $('chord-extension-select').value =
     isTriad ? '' : state.chords.extension;
@@ -556,14 +603,20 @@ function populateChordBuildControls() {
     : state.chords.drop2StringSet;
   shapeSelect.value = state.chords.cagedShape;
 
+  freeVoicingSelect.value = state.chords.freeVoicingId;
+
   const isDrop2 = state.chords.voicingFamily === 'Drop 2';
+
   const usesInversions = isDrop2 || isTriad;
   const usesStringSets = isDrop2 || isTriad;
 
   inversionSelect.hidden = !usesInversions;
   stringSetSelect.hidden = !usesStringSets;
-  shapeSelect.hidden = usesInversions;
-  positionSelect.hidden = usesInversions;
+
+  shapeSelect.hidden = usesInversions || isFreeBuild;
+  positionSelect.hidden = usesInversions || isFreeBuild;
+
+  freeVoicingSelect.hidden = !isFreeBuild;
 
   $('chord-extension-select').hidden =
     isTriad || state.chords.voicingFamily === 'CAGED';
@@ -661,11 +714,27 @@ function getChordIdentifyDisplayName(result) {
   return `${chordName}/${Theory.noteName(bassMidi)}`;
 }
 
+function getChordBuildRootLabel() {
+  const noteName = Theory.noteName(state.chords.rootMidi);
+
+  if (state.chords.voicingFamily !== 'CAGED') {
+    return noteName;
+  }
+
+  const positionNumber =
+    Math.floor(state.chords.rootPosition / 12) + 1;
+
+  return `${noteName}${positionNumber}`;
+}
+
 function renderChordExploreResults() {
   const output = $('result-text');
 
   if (state.chords.exploreMode === 'build') {
     const isDrop2 = state.chords.voicingFamily === 'Drop 2';
+    const isTriad = state.chords.voicingFamily === 'Triad';
+    const isFreeBuild = state.chords.voicingFamily === 'Free Build';
+
     if (isDrop2 && state.chords.type !== 'major7') {
       output.innerHTML = `
         <span class="result-strong">
@@ -677,6 +746,8 @@ function renderChordExploreResults() {
 
     if (
       !isDrop2 &&
+      !isTriad &&
+      !isFreeBuild &&
       state.chords.type !== 'major' &&
       state.chords.type !== 'minor' &&
       state.chords.type !== 'dominant7'
@@ -696,7 +767,7 @@ function renderChordExploreResults() {
         <span class="result-strong">
           ${isDrop2
             ? 'That Drop 2 voicing is not available in the current fret range.'
-            : 'That CAGED shape is not available yet.'}
+            : 'That CAGED shape is not available in the current fret range.'}
         </span>
       `;
       return;
@@ -711,14 +782,25 @@ function renderChordExploreResults() {
 
     output.innerHTML = `
       <span class="result-strong">
-        ${Theory.noteName(state.chords.rootMidi)} ${Theory.chordInfo(state.chords.type).label} · ${
+        ${getChordBuildRootLabel()} ${Theory.chordInfo(state.chords.type).label} · ${
           isDrop2
             ? `Drop 2 · ${
                 $('chord-inversion-select').selectedOptions[0].textContent
               } · ${
                 $('chord-string-set-select').selectedOptions[0].textContent
               }`
-            : `CAGED ${state.chords.cagedShape} · ${state.chords.position}`
+            : isTriad
+              ? `Triad · ${
+                  $('chord-inversion-select').selectedOptions[0].textContent
+                } · ${
+                  $('chord-string-set-select').selectedOptions[0].textContent
+                }`
+              : isFreeBuild
+                ? `Free Build · ${
+                    $('chord-free-voicing-select').selectedOptions[0]?.textContent ||
+                    'No compatible preset'
+                  }`
+                : `CAGED ${state.chords.cagedShape} · ${state.chords.position}`
         }
       </span>
       <span class="quiz-feedback">
@@ -1842,8 +1924,9 @@ function setModule(name) {
     state.chords.drop2Inversion = 'root';
     state.chords.drop2StringSet = '1-4';
     state.chords.triadInversion = 'root';
-    state.chords.triadStringSet = '1-3';
-    state.chords.cagedShape = 'C shape';
+  state.chords.triadStringSet = '1-3';
+  state.chords.freeVoicingId = 'open-c';
+  state.chords.cagedShape = 'C shape';
     state.chords.position = 'Open';
     state.chords.mutedStrings = [false, false, false, false, false, false];
 
@@ -2015,7 +2098,19 @@ $('chord-identify-clear-button').addEventListener('click', () => {
 });
 
 $('chord-root-select').addEventListener('change', (event) => {
-  state.chords.rootMidi = Number(event.target.value);
+  const selectedValue = Number(event.target.value);
+
+  if (state.chords.voicingFamily === 'CAGED') {
+    state.chords.rootPosition = selectedValue;
+    state.chords.rootMidi = Theory.pitchClass(selectedValue);
+  } else {
+    state.chords.rootMidi = selectedValue;
+    state.chords.rootPosition = selectedValue;
+  }
+
+  state.chords.mutedStrings =
+    [false, false, false, false, false, false];
+
   syncChordBuildVoicing();
   safeUpdateResults();
   renderFretboard();
@@ -2065,10 +2160,20 @@ $('chord-voicing-select').addEventListener('change', (event) => {
   }
 
   if (state.chords.voicingFamily === 'CAGED') {
+    state.chords.rootPosition = state.chords.rootMidi;
     state.chords.extension = 'none';
     resolveBuildChordType();
   }
 
+  if (state.chords.voicingFamily === 'Free Build') {
+    state.chords.rootMidi = 0;
+    state.chords.rootPosition = 0;
+    state.chords.quality = 'major';
+    state.chords.extension = 'none';
+    state.chords.type = 'major';
+    state.chords.freeVoicingId = 'open-c';
+  }
+  
   if (state.chords.voicingFamily === 'Triad') {
     state.chords.rootMidi = 0;
     state.chords.quality = 'major';
@@ -2115,6 +2220,16 @@ $('chord-string-set-select').addEventListener('change', (event) => {
 $('chord-shape-select').addEventListener('change', (event) => {
   state.chords.cagedShape = event.target.value;
   populateChordBuildControls();
+  syncChordBuildVoicing();
+  safeUpdateResults();
+  renderFretboard();
+});
+
+$('chord-free-voicing-select').addEventListener('change', (event) => {
+  state.chords.freeVoicingId = event.target.value;
+  state.chords.mutedStrings =
+    [false, false, false, false, false, false];
+
   syncChordBuildVoicing();
   safeUpdateResults();
   renderFretboard();
