@@ -10,11 +10,14 @@ const state = {
   chords: {
     exploreMode: 'build',
     rootMidi: 0,
+    quality: 'major',
     type: 'major',
     extension: 'none',
     voicingFamily: 'CAGED',
     drop2Inversion: 'root',
     drop2StringSet: '1-4',
+    triadInversion: 'root',
+    triadStringSet: '1-3',
     cagedShape: 'C shape',
     position: 'Open',
     generatedVoicing: [0, 1, 0, 2, 3, null],
@@ -61,6 +64,120 @@ const strings = [
 const inlays = new Set([3, 5, 7, 9, 12, 15, 17, 19, 21, 24]);
 
 const $ = (id) => document.getElementById(id);
+
+const CHORD_BUILD_STEPPER_IDS = [
+  'chord-voicing-select',
+  'chord-inversion-select',
+  'chord-string-set-select',
+  'chord-root-select',
+  'chord-type-select',
+  'chord-extension-select',
+  'chord-shape-select',
+  'chord-position-select'
+];
+
+function refreshChordBuildStepper(select) {
+  const wrapper = select.closest('.control-stepper');
+
+  if (!wrapper) return;
+
+  const previousButton = wrapper.querySelector(
+    '.control-stepper-button[data-direction="previous"]'
+  );
+
+  const nextButton = wrapper.querySelector(
+    '.control-stepper-button[data-direction="next"]'
+  );
+
+  const isDisabled = select.disabled || select.options.length <= 1;
+
+  previousButton.disabled =
+    isDisabled || select.selectedIndex <= 0;
+
+  nextButton.disabled =
+    isDisabled || select.selectedIndex >= select.options.length - 1;
+
+  wrapper.hidden = select.hidden;
+}
+
+function stepChordBuildSelect(select, direction) {
+  const nextIndex = select.selectedIndex + direction;
+
+  if (
+    nextIndex < 0 ||
+    nextIndex >= select.options.length ||
+    select.disabled
+  ) {
+    return;
+  }
+
+  select.selectedIndex = nextIndex;
+
+  select.dispatchEvent(
+    new Event('change', { bubbles: true })
+  );
+}
+
+function initializeChordBuildSteppers() {
+  CHORD_BUILD_STEPPER_IDS.forEach((selectId) => {
+    const select = $(selectId);
+
+    if (!select || select.closest('.control-stepper')) {
+      return;
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'control-stepper';
+    wrapper.dataset.stepperFor = selectId;
+
+    const previousButton = document.createElement('button');
+    previousButton.type = 'button';
+    previousButton.className = 'control-stepper-button';
+    previousButton.dataset.direction = 'previous';
+    previousButton.setAttribute(
+      'aria-label',
+      `Previous ${select.getAttribute('aria-label') || 'option'}`
+    );
+    previousButton.textContent = '‹';
+
+    const nextButton = document.createElement('button');
+    nextButton.type = 'button';
+    nextButton.className = 'control-stepper-button';
+    nextButton.dataset.direction = 'next';
+    nextButton.setAttribute(
+      'aria-label',
+      `Next ${select.getAttribute('aria-label') || 'option'}`
+    );
+    nextButton.textContent = '›';
+
+    select.parentNode.insertBefore(wrapper, select);
+    wrapper.append(previousButton, select, nextButton);
+
+    previousButton.addEventListener('click', () => {
+      stepChordBuildSelect(select, -1);
+    });
+
+    nextButton.addEventListener('click', () => {
+      stepChordBuildSelect(select, 1);
+    });
+
+    select.addEventListener('change', () => {
+      refreshChordBuildStepper(select);
+    });
+
+    refreshChordBuildStepper(select);
+  });
+}
+
+function refreshAllChordBuildSteppers() {
+  CHORD_BUILD_STEPPER_IDS.forEach((selectId) => {
+    const select = $(selectId);
+
+    if (select) {
+      refreshChordBuildStepper(select);
+    }
+  });
+}
 
 function switchScreen(name) {
   document.querySelectorAll('.screen').forEach((element) => {
@@ -151,6 +268,105 @@ function syncChordExploreControls() {
   });
 }
 
+const BUILD_CHORD_OPTIONS = {
+  major: {
+    label: 'Major',
+    defaultExtension: '6',
+    extensions: [
+      { value: '6', label: '6', type: 'sixth' },
+      { value: 'add9', label: 'add9', type: 'add9' },
+      { value: 'maj7', label: 'maj7', type: 'major7' },
+      { value: 'maj7Sharp11', label: 'maj7♯11', type: 'major7Sharp11' },
+      { value: '9', label: '9', type: 'major9' },
+      { value: '6/9', label: '6/9', type: 'sixNine' }
+    ]
+  },
+
+  minor: {
+    label: 'Minor',
+    defaultExtension: '6',
+    extensions: [
+      { value: '6', label: '6', type: 'minor6' },
+      { value: '7', label: '7', type: 'minor7' },
+      { value: '9', label: '9', type: 'minor9' }
+    ]
+  },
+
+  dominant: {
+    label: 'Dominant',
+    defaultExtension: '7',
+    extensions: [
+      { value: '7', label: '7', type: 'dominant7' },
+      { value: '9', label: '9', type: 'dominant9' },
+      { value: '11', label: '11', type: 'dominant11' },
+      { value: '13', label: '13', type: 'dominant13' }
+    ]
+  },
+
+  diminished: {
+    label: 'Diminished',
+    defaultExtension: 'none',
+    extensions: []
+  },
+
+  augmented: {
+    label: 'Augmented',
+    defaultExtension: 'none',
+    extensions: []
+  },
+
+  sus2: {
+    label: 'Sus2',
+    defaultExtension: 'none',
+    extensions: []
+  },
+
+  sus4: {
+    label: 'Sus4',
+    defaultExtension: 'none',
+    extensions: []
+  }
+};
+
+function resolveBuildChordType() {
+  const quality = BUILD_CHORD_OPTIONS[state.chords.quality];
+
+  if (!quality) {
+    state.chords.quality = 'major';
+    state.chords.extension = 'none';
+    state.chords.type = 'major';
+    return;
+  }
+
+  if (state.chords.extension === 'none') {
+    state.chords.type = state.chords.quality;
+    return;
+  }
+
+  const extension = quality.extensions.find(
+    (item) => item.value === state.chords.extension
+  );
+
+  if (extension) {
+    state.chords.type = extension.type;
+    return;
+  }
+
+  if (quality.defaultExtension === 'none') {
+    state.chords.extension = 'none';
+    state.chords.type = state.chords.quality;
+    return;
+  }
+
+  state.chords.extension = quality.defaultExtension;
+
+  const defaultOption = quality.extensions.find(
+    (item) => item.value === quality.defaultExtension
+  );
+
+  state.chords.type = defaultOption.type;
+}
+
 function getChordExploreTonePitchClasses() {
   return Theory.chordPitchClasses(
     state.chords.rootMidi,
@@ -163,7 +379,45 @@ function isChordBuildMode() {
 }
 
 function syncChordBuildVoicing() {
-  if (!isChordBuildMode()) return false;
+  if (!isChordBuildMode()) {
+    return false;
+  }
+
+  if (state.chords.voicingFamily === 'Drop 2') {
+    const voicing = Theory.generateDrop2Voicing(
+      state.chords.rootMidi,
+      state.chords.type,
+      state.chords.drop2Inversion,
+      state.chords.drop2StringSet,
+      state.maxFret
+    );
+
+    state.chords.generatedVoicing = voicing
+      ? voicing.map((fret, index) => (
+          state.chords.mutedStrings[index] ? null : fret
+        ))
+      : [null, null, null, null, null, null];
+
+    return Boolean(voicing);
+  }
+
+  if (state.chords.voicingFamily === 'Triad') {
+    const voicing = Theory.generateTriadVoicing(
+      state.chords.rootMidi,
+      state.chords.type,
+      state.chords.triadInversion,
+      state.chords.triadStringSet,
+      state.maxFret
+    );
+
+    state.chords.generatedVoicing = voicing
+      ? voicing.map((fret, index) => (
+          state.chords.mutedStrings[index] ? null : fret
+        ))
+      : [null, null, null, null, null, null];
+
+    return Boolean(voicing);
+  }
 
   if (
     state.chords.type !== 'major' &&
@@ -197,12 +451,17 @@ function populateChordBuildControls() {
   const rootSelect = $('chord-root-select');
   const typeSelect = $('chord-type-select');
   const voicingSelect = $('chord-voicing-select');
+  const inversionSelect = $('chord-inversion-select');
+  const stringSetSelect = $('chord-string-set-select');
   const shapeSelect = $('chord-shape-select');
   const positionSelect = $('chord-position-select');
 
   rootSelect.innerHTML = '';
   typeSelect.innerHTML = '';
+  $('chord-extension-select').innerHTML = '';
   voicingSelect.innerHTML = '';
+  inversionSelect.innerHTML = '';
+  stringSetSelect.innerHTML = '';
   shapeSelect.innerHTML = '';
   positionSelect.innerHTML = '';
 
@@ -213,17 +472,48 @@ function populateChordBuildControls() {
     rootSelect.appendChild(option);
   }
 
-  Object.entries(Theory.chordTypes).forEach(([type, chord]) => {
+  Object.entries(BUILD_CHORD_OPTIONS).forEach(([quality, config]) => {
     const option = document.createElement('option');
-    option.value = type;
-    option.textContent = chord.label;
+    option.value = quality;
+    option.textContent = config.label;
     typeSelect.appendChild(option);
   });
 
-  const voicingOption = document.createElement('option');
-  voicingOption.value = 'CAGED';
-  voicingOption.textContent = 'CAGED';
-  voicingSelect.appendChild(voicingOption);
+  [
+    { value: 'CAGED', label: 'CAGED' },
+    { value: 'Drop 2', label: 'Drop 2' },
+    { value: 'Triad', label: 'Triad' }
+  ].forEach(({ value, label }) => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    voicingSelect.appendChild(option);
+  });
+
+  [
+    { value: 'root', label: 'Root position' },
+    { value: 'first', label: '1st inversion' },
+    { value: 'second', label: '2nd inversion' },
+    { value: 'third', label: '3rd inversion' }
+  ].forEach(({ value, label }) => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    inversionSelect.appendChild(option);
+  });
+
+  const isTriad = state.chords.voicingFamily === 'Triad';
+
+  const availableStringSets = isTriad
+    ? Theory.triadStringSets()
+    : Theory.drop2StringSets();
+
+  availableStringSets.forEach(({ id, label }) => {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = label;
+    stringSetSelect.appendChild(option);
+  });
 
   Theory.cageShapeNames().forEach((shapeName) => {
     const option = document.createElement('option');
@@ -239,17 +529,52 @@ function populateChordBuildControls() {
     positionSelect.appendChild(option);
   });
 
+  if (!isTriad) {
+    resolveBuildChordType();
+  }
+
+  const qualityConfig = BUILD_CHORD_OPTIONS[state.chords.quality];
+
+  qualityConfig.extensions.forEach(({ value, label }) => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    $('chord-extension-select').appendChild(option);
+  });
+
   rootSelect.value = state.chords.rootMidi;
-  typeSelect.value = state.chords.type;
-  $('chord-extension-select').value = state.chords.extension;
+  typeSelect.value = state.chords.quality;
+  $('chord-extension-select').value =
+    isTriad ? '' : state.chords.extension;
   voicingSelect.value = state.chords.voicingFamily;
+  inversionSelect.value = isTriad
+    ? state.chords.triadInversion
+    : state.chords.drop2Inversion;
+
+  stringSetSelect.value = isTriad
+    ? state.chords.triadStringSet
+    : state.chords.drop2StringSet;
   shapeSelect.value = state.chords.cagedShape;
+
+  const isDrop2 = state.chords.voicingFamily === 'Drop 2';
+  const usesInversions = isDrop2 || isTriad;
+  const usesStringSets = isDrop2 || isTriad;
+
+  inversionSelect.hidden = !usesInversions;
+  stringSetSelect.hidden = !usesStringSets;
+  shapeSelect.hidden = usesInversions;
+  positionSelect.hidden = usesInversions;
+
+  $('chord-extension-select').hidden =
+    isTriad || state.chords.voicingFamily === 'CAGED';
 
   if (!Theory.cagePositionsForShape(state.chords.cagedShape).includes(state.chords.position)) {
     state.chords.position = Theory.cagePositionsForShape(state.chords.cagedShape)[0] || 'Open';
   }
 
   positionSelect.value = state.chords.position;
+
+  refreshAllChordBuildSteppers();
 }
 
 function getChordIdentifyNotesInPitchOrder() {
@@ -340,7 +665,18 @@ function renderChordExploreResults() {
   const output = $('result-text');
 
   if (state.chords.exploreMode === 'build') {
+    const isDrop2 = state.chords.voicingFamily === 'Drop 2';
+    if (isDrop2 && state.chords.type !== 'major7') {
+      output.innerHTML = `
+        <span class="result-strong">
+          Drop 2 is currently available for Major 7 chords only.
+        </span>
+      `;
+      return;
+    }
+
     if (
+      !isDrop2 &&
       state.chords.type !== 'major' &&
       state.chords.type !== 'minor' &&
       state.chords.type !== 'dominant7'
@@ -356,16 +692,11 @@ function renderChordExploreResults() {
     const supported = syncChordBuildVoicing();
 
     if (!supported) {
-      const qualityLabel = state.chords.type === 'minor' ? 'minor' : 'major';
-      const unsupportedMinorShape = state.chords.type === 'minor' && ['C shape', 'G shape'].includes(state.chords.cagedShape);
-
       output.innerHTML = `
         <span class="result-strong">
-          ${unsupportedMinorShape
-            ? 'That minor CAGED shape is not available yet.'
-            : (Theory.cagePositionsForShape(state.chords.cagedShape).includes(state.chords.position)
-              ? `CAGED shapes are currently available for ${qualityLabel} and minor chords only.`
-              : 'That CAGED shape is not available at this position yet.')}
+          ${isDrop2
+            ? 'That Drop 2 voicing is not available in the current fret range.'
+            : 'That CAGED shape is not available yet.'}
         </span>
       `;
       return;
@@ -380,7 +711,15 @@ function renderChordExploreResults() {
 
     output.innerHTML = `
       <span class="result-strong">
-        ${Theory.noteName(state.chords.rootMidi)} ${Theory.chordInfo(state.chords.type).label} · CAGED ${state.chords.cagedShape} · ${state.chords.position}
+        ${Theory.noteName(state.chords.rootMidi)} ${Theory.chordInfo(state.chords.type).label} · ${
+          isDrop2
+            ? `Drop 2 · ${
+                $('chord-inversion-select').selectedOptions[0].textContent
+              } · ${
+                $('chord-string-set-select').selectedOptions[0].textContent
+              }`
+            : `CAGED ${state.chords.cagedShape} · ${state.chords.position}`
+        }
       </span>
       <span class="quiz-feedback">
         ${chordTones} · ${Theory.chordFormula(state.chords.type)}
@@ -1496,9 +1835,14 @@ function setModule(name) {
   if (name === 'Chords') {
     state.chords.exploreMode = 'build';
     state.chords.rootMidi = 0;
-    state.chords.type = 'major';
+    state.chords.quality = 'major';
     state.chords.extension = 'none';
+    state.chords.type = 'major';
     state.chords.voicingFamily = 'CAGED';
+    state.chords.drop2Inversion = 'root';
+    state.chords.drop2StringSet = '1-4';
+    state.chords.triadInversion = 'root';
+    state.chords.triadStringSet = '1-3';
     state.chords.cagedShape = 'C shape';
     state.chords.position = 'Open';
     state.chords.mutedStrings = [false, false, false, false, false, false];
@@ -1620,15 +1964,34 @@ document.querySelectorAll('[data-chord-explore-mode]').forEach((button) => {
 });
 
 $('chord-identify-play-button').addEventListener('click', () => {
-  if (
-    state.module !== 'Chords' ||
-    state.mode !== 'explore' ||
-    state.chords.exploreMode !== 'identify'
-  ) {
+  const isChordExplore =
+    state.module === 'Chords' &&
+    state.mode === 'explore';
+
+  if (!isChordExplore) {
     return;
   }
 
-  const notes = getChordIdentifyNotesInPitchOrder();
+  let notes = [];
+
+  if (state.chords.exploreMode === 'build') {
+    notes = state.chords.generatedVoicing
+      .map((fret, stringIndex) => {
+        if (fret === null || fret === undefined) {
+          return null;
+        }
+
+        return {
+          midi: strings[stringIndex].midi + fret
+        };
+      })
+      .filter(Boolean)
+      .sort((left, right) => left.midi - right.midi);
+  }
+
+  if (state.chords.exploreMode === 'identify') {
+    notes = getChordIdentifyNotesInPitchOrder();
+  }
 
   notes.forEach((note, index) => {
     setTimeout(() => {
@@ -1659,7 +2022,16 @@ $('chord-root-select').addEventListener('change', (event) => {
 });
 
 $('chord-type-select').addEventListener('change', (event) => {
-  state.chords.type = event.target.value;
+  state.chords.quality = event.target.value;
+  state.chords.extension =
+    BUILD_CHORD_OPTIONS[state.chords.quality].defaultExtension;
+
+  resolveBuildChordType();
+
+  state.chords.mutedStrings =
+    [false, false, false, false, false, false];
+
+  populateChordBuildControls();
   syncChordBuildVoicing();
   safeUpdateResults();
   renderFretboard();
@@ -1667,12 +2039,74 @@ $('chord-type-select').addEventListener('change', (event) => {
 
 $('chord-extension-select').addEventListener('change', (event) => {
   state.chords.extension = event.target.value;
+
+  resolveBuildChordType();
+
+  state.chords.mutedStrings =
+    [false, false, false, false, false, false];
+
+  syncChordBuildVoicing();
   safeUpdateResults();
   renderFretboard();
 });
 
 $('chord-voicing-select').addEventListener('change', (event) => {
   state.chords.voicingFamily = event.target.value;
+  state.chords.mutedStrings = [false, false, false, false, false, false];
+
+  if (state.chords.voicingFamily === 'Drop 2') {
+    state.chords.rootMidi = 5;
+    state.chords.quality = 'major';
+    state.chords.extension = 'maj7';
+    state.chords.drop2Inversion = 'first';
+    state.chords.drop2StringSet = '1-4';
+
+    resolveBuildChordType();
+  }
+
+  if (state.chords.voicingFamily === 'CAGED') {
+    state.chords.extension = 'none';
+    resolveBuildChordType();
+  }
+
+  if (state.chords.voicingFamily === 'Triad') {
+    state.chords.rootMidi = 0;
+    state.chords.quality = 'major';
+    state.chords.extension = 'none';
+    state.chords.type = 'major';
+    state.chords.triadInversion = 'root';
+    state.chords.triadStringSet = '1-3';
+  }
+
+  populateChordBuildControls();
+  syncChordBuildVoicing();
+  safeUpdateResults();
+  renderFretboard();
+});
+
+$('chord-inversion-select').addEventListener('change', (event) => {
+  if (state.chords.voicingFamily === 'Triad') {
+    state.chords.triadInversion = event.target.value;
+  } else {
+    state.chords.drop2Inversion = event.target.value;
+  }
+
+  state.chords.mutedStrings = [false, false, false, false, false, false];
+
+  syncChordBuildVoicing();
+  safeUpdateResults();
+  renderFretboard();
+});
+
+$('chord-string-set-select').addEventListener('change', (event) => {
+  if (state.chords.voicingFamily === 'Triad') {
+    state.chords.triadStringSet = event.target.value;
+  } else {
+    state.chords.drop2StringSet = event.target.value;
+  }
+
+  state.chords.mutedStrings = [false, false, false, false, false, false];
+
   syncChordBuildVoicing();
   safeUpdateResults();
   renderFretboard();
@@ -1931,6 +2365,8 @@ $('settings-overlay').addEventListener('click', (event) => {
     closeSettings();
   }
 });
+
+initializeChordBuildSteppers();
 
 setQuizAnswerMode(state.quiz.answerMode);
 updateQuizStatus();

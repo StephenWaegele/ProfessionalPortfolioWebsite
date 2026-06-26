@@ -116,19 +116,21 @@ button { cursor:pointer; }
   padding-top: 8px;
 }
 
-#chord-root-select,
-#chord-type-select,
-#chord-extension-select {
+.control-stepper[data-stepper-for="chord-voicing-select"],
+.control-stepper[data-stepper-for="chord-inversion-select"],
+.control-stepper[data-stepper-for="chord-string-set-select"],
+.control-stepper[data-stepper-for="chord-shape-select"],
+.control-stepper[data-stepper-for="chord-position-select"] {
   grid-row: 1;
 }
 
-#chord-voicing-select,
-#chord-inversion-select,
-#chord-string-set-select,
-#chord-shape-select,
-#chord-position-select {
+.control-stepper[data-stepper-for="chord-root-select"],
+.control-stepper[data-stepper-for="chord-type-select"],
+.control-stepper[data-stepper-for="chord-extension-select"] {
   grid-row: 2;
 }
+
+
 .chord-build-controls select { border:1px solid var(--line); border-radius:8px; padding:7px 8px; background:white; color:var(--ink); }
 .quiz-begin, .done-button { border:0; color:white; background:var(--dark); padding:8px 13px; border-radius:10px; font-weight:800; }
 #quiz-status { color:var(--muted); font-size:.8rem; }
@@ -456,7 +458,55 @@ button { cursor:pointer; }
   margin-top: 10px;
 }
 
-.chord-build-controls select,
+.control-stepper {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.control-stepper[hidden] {
+  display: none;
+}
+
+.control-stepper select {
+  min-width: 0;
+  border-radius: 0 !important;
+  border-left: 0;
+  border-right: 0;
+}
+
+.control-stepper-button {
+  width: 28px;
+  min-width: 28px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0;
+}
+
+.control-stepper-button:first-child {
+  border-radius: 9px 0 0 9px;
+}
+
+.control-stepper-button:last-child {
+  border-radius: 0 9px 9px 0;
+}
+
+.control-stepper-button:active:not(:disabled) {
+  transform: translateY(1px);
+  background: #f1eee9;
+}
+
+.control-stepper-button:disabled {
+  cursor: default;
+  color: #c1c4c8;
+  background: #f7f6f3;
+}
+
+.control-stepper select,
 .quiz-analyze {
   border: 1px solid var(--line);
   border-radius: 9px;

@@ -290,6 +290,165 @@ window.Theory = (() => {
     });
   }
 
+const TRIAD_STRING_SETS = {
+  '1-3': {
+    label: 'Strings 1–3',
+    stringIndexes: [0, 1, 2]
+  },
+  '2-4': {
+    label: 'Strings 2–4',
+    stringIndexes: [1, 2, 3]
+  },
+  '3-5': {
+    label: 'Strings 3–5',
+    stringIndexes: [2, 3, 4]
+  },
+  '4-6': {
+    label: 'Strings 4–6',
+    stringIndexes: [3, 4, 5]
+  }
+};
+
+function triadStringSets() {
+  return Object.entries(TRIAD_STRING_SETS).map(([id, set]) => ({
+    id,
+    label: set.label
+  }));
+}
+
+function generateTriadVoicing(
+  rootMidi,
+  type,
+  inversion,
+  stringSetId,
+  maxFret = 24
+) {
+  const chord = chordInfo(type);
+
+  if (!chord || chord.intervals.length !== 3) {
+    return null;
+  }
+
+  const stringSet = TRIAD_STRING_SETS[stringSetId];
+
+  if (!stringSet) {
+    return null;
+  }
+
+  const triadIntervals = chord.intervals;
+
+  const inversionOrders = {
+    root: [
+      triadIntervals[0],
+      triadIntervals[1],
+      triadIntervals[2]
+    ],
+    first: [
+      triadIntervals[1],
+      triadIntervals[2],
+      triadIntervals[0]
+    ],
+    second: [
+      triadIntervals[2],
+      triadIntervals[0],
+      triadIntervals[1]
+    ]
+  };
+
+  const intervalOrder = inversionOrders[inversion];
+
+  if (!intervalOrder) {
+    return null;
+  }
+
+  const openStringMidis = [64, 59, 55, 50, 45, 40];
+
+  const lowToHighStringIndexes =
+    [...stringSet.stringIndexes].reverse();
+
+  const candidatesByString = lowToHighStringIndexes.map(
+    (stringIndex, noteIndex) => {
+      const openMidi = openStringMidis[stringIndex];
+      const targetPitchClass = pitchClass(
+        rootMidi + intervalOrder[noteIndex]
+      );
+
+      const candidates = [];
+
+      for (let fret = 0; fret <= maxFret; fret += 1) {
+        const midi = openMidi + fret;
+
+        if (pitchClass(midi) === targetPitchClass) {
+          candidates.push({ fret, midi });
+        }
+      }
+
+      return candidates;
+    }
+  );
+
+  let bestVoicing = null;
+
+  function search(stringPosition, chosenNotes) {
+    if (stringPosition === candidatesByString.length) {
+      const frets = [null, null, null, null, null, null];
+
+      chosenNotes.forEach((note, noteIndex) => {
+        frets[lowToHighStringIndexes[noteIndex]] = note.fret;
+      });
+
+      const frettedNotes = chosenNotes.filter(
+        (note) => note.fret > 0
+      );
+
+      const lowestFret = Math.min(
+        ...frettedNotes.map((note) => note.fret)
+      );
+
+      const highestFret = Math.max(
+        ...frettedNotes.map((note) => note.fret)
+      );
+
+      if (highestFret - lowestFret > 5) {
+        return;
+      }
+
+      const candidate = {
+        frets,
+        highestFret,
+        lowestFret
+      };
+
+      if (
+        !bestVoicing ||
+        candidate.highestFret < bestVoicing.highestFret ||
+        (
+          candidate.highestFret === bestVoicing.highestFret &&
+          candidate.lowestFret < bestVoicing.lowestFret
+        )
+      ) {
+        bestVoicing = candidate;
+      }
+
+      return;
+    }
+
+    const previousMidi = chosenNotes.length
+      ? chosenNotes[chosenNotes.length - 1].midi
+      : -Infinity;
+
+    candidatesByString[stringPosition].forEach((candidate) => {
+      if (candidate.midi > previousMidi) {
+        search(stringPosition + 1, [...chosenNotes, candidate]);
+      }
+    });
+  }
+
+  search(0, []);
+
+  return bestVoicing ? bestVoicing.frets : null;
+}
+
   const DROP2_STRING_SETS = {
   '1-4': {
     label: 'Strings 1–4',
@@ -306,10 +465,10 @@ window.Theory = (() => {
 };
 
 const DROP2_INTERVAL_ORDERS = {
-  root: [7, 0, 4, 11],
-  first: [11, 4, 7, 0],
-  second: [0, 7, 11, 4],
-  third: [4, 11, 0, 7]
+  root: [0, 7, 11, 4],
+  first: [4, 11, 0, 7],
+  second: [7, 0, 4, 11],
+  third: [11, 4, 7, 0]
 };
 
 function drop2StringSets() {
@@ -437,6 +596,8 @@ function generateDrop2Voicing(
     generateCagedVoicing,
     generateDrop2Voicing,
     drop2StringSets,
+    generateTriadVoicing,
+    triadStringSets,
     chordTypes: CHORD_TYPES
   };
 })();
