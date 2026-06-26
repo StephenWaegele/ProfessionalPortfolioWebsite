@@ -41,15 +41,74 @@ button { cursor:pointer; }
 .toolbar-icons { display:flex; gap:7px; }
 .tool-toggle { width:31px; height:29px; border:1px solid transparent; border-radius:9px; background:transparent; color:#9aa0a8; font-weight:800; }
 .tool-toggle.active-toggle { color:var(--ink); background:#fff; border-color:var(--line); }
-.results-panel { background:rgba(255,255,255,.82); border:1px solid var(--line); border-radius:15px; padding:10px 12px; }
-.results-topline { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-.results-panel h2 { margin:0; font-size:.82rem; letter-spacing:.02em; }
+.results-panel {
+  position: relative;
+  background: rgba(255,255,255,.82);
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  padding: 10px 12px;
+}
+
+.results-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.results-panel h2 {
+  margin: -3px 0 0;
+  font-size: .82rem;
+  letter-spacing: .02em;
+  align-self: flex-start;
+}
 .mode-switch { display:flex; background:#ebe8e3; border-radius:10px; padding:3px; }
 .mode-button { border:0; background:transparent; border-radius:7px; padding:6px 11px; font-size:.76rem; color:var(--muted); font-weight:750; }
 .active-mode { color:var(--ink); background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.12); }
-.result-content { min-height:31px; padding-top:8px; }
-.result-content p { margin:0; font-size:.93rem; color:var(--muted); }
-.result-strong { color:var(--ink)!important; font-weight:700; }
+.result-content {
+  min-height: 72px;
+  padding-top: 3px;
+}
+
+.result-content p {
+  margin: 0;
+  font-size: .93rem;
+  color: var(--muted);
+}
+
+.result-strong {
+  color: var(--ink) !important;
+  font-weight: 700;
+}
+
+.identified-chord-name,
+.identified-chord-notes,
+.identified-chord-intervals {
+  display: block;
+}
+
+.identified-chord-name {
+  color: var(--ink);
+  font-size: 1.18rem;
+  font-weight: 850;
+  letter-spacing: -.025em;
+  line-height: 1.08;
+  margin-bottom: 6px;
+}
+
+.identified-chord-notes {
+  color: var(--ink);
+  font-size: .88rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.identified-chord-intervals {
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 750;
+  line-height: 1.25;
+  margin-top: 2px;
+}
 .quiz-controls { padding-top:8px; display:flex; align-items:center; gap:10px; }
 .chord-build-controls {
   grid-template-columns: max-content max-content max-content;
@@ -64,6 +123,8 @@ button { cursor:pointer; }
 }
 
 #chord-voicing-select,
+#chord-inversion-select,
+#chord-string-set-select,
 #chord-shape-select,
 #chord-position-select {
   grid-row: 2;
@@ -413,6 +474,42 @@ button { cursor:pointer; }
   font-weight: 800;
 }
 
+.chord-identify-actions {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chord-identify-play-button,
+.chord-identify-clear-button {
+  border-radius: 8px;
+  padding: 5px 9px;
+  font-size: .72rem;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.chord-identify-play-button {
+  border: 1px solid rgba(133, 113, 185, .38);
+  background: #e9e2f6;
+  color: #69578f;
+}
+
+.chord-identify-clear-button {
+  border: 1px solid rgba(202, 101, 91, .38);
+  background: #f5ddda;
+  color: #a44840;
+}
+
+.chord-identify-clear-button:active {
+  transform: translateY(1px);
+  background: #efcfca;
+}
+
 .overlay[hidden] { display: none !important; }
 
 /* Two-line labels inside selected note circles. */
@@ -552,6 +649,10 @@ button { cursor:pointer; }
 
 /* Quiz-only answer format selector. */
 .mode-controls {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+
   display: flex;
   flex-direction: column;
   align-items: flex-end;

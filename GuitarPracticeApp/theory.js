@@ -76,11 +76,20 @@ window.Theory = (() => {
 
     sixth: { label: '6', symbol: '6', intervals: [0, 4, 7, 9] },
     minor6: { label: 'Minor 6', symbol: 'm6', intervals: [0, 3, 7, 9] },
+
+    sixNine: { label: '6/9', symbol: '6/9', intervals: [0, 4, 7, 9, 14] },
+
     add9: { label: 'Add 9', symbol: 'add9', intervals: [0, 4, 7, 14] },
 
     dominant7: { label: 'Dominant 7', symbol: '7', intervals: [0, 4, 7, 10] },
     major7: { label: 'Major 7', symbol: 'maj7', intervals: [0, 4, 7, 11] },
     minor7: { label: 'Minor 7', symbol: 'm7', intervals: [0, 3, 7, 10] },
+
+    major7Sharp11: {
+      label: 'Major 7 ♯11',
+      symbol: 'maj7♯11',
+      intervals: [0, 4, 7, 11, 18]
+    },
 
     dominant9: { label: 'Dominant 9', symbol: '9', intervals: [0, 4, 7, 10, 14] },
     major9: { label: 'Major 9', symbol: 'maj9', intervals: [0, 4, 7, 11, 14] },
@@ -204,10 +213,21 @@ window.Theory = (() => {
       9: '6',
       10: '♭7',
       11: '7',
+      12: '8',
+      13: '♭9',
       14: '9',
+      15: '♭10',
+      16: '10',
       17: '11',
-      21: '13'
+      18: '♯11',
+      19: '12',
+      20: '♭13',
+      21: '13',
+      22: '♯13',
+      23: '7',
+      24: '15'
     };
+  
 
     return chord.intervals.map((interval) => labels[interval] || `${interval}`).join(' · ');
   }
@@ -270,6 +290,137 @@ window.Theory = (() => {
     });
   }
 
+  const DROP2_STRING_SETS = {
+  '1-4': {
+    label: 'Strings 1–4',
+    stringIndexes: [0, 1, 2, 3]
+  },
+  '2-5': {
+    label: 'Strings 2–5',
+    stringIndexes: [1, 2, 3, 4]
+  },
+  '3-6': {
+    label: 'Strings 3–6',
+    stringIndexes: [2, 3, 4, 5]
+  }
+};
+
+const DROP2_INTERVAL_ORDERS = {
+  root: [7, 0, 4, 11],
+  first: [11, 4, 7, 0],
+  second: [0, 7, 11, 4],
+  third: [4, 11, 0, 7]
+};
+
+function drop2StringSets() {
+  return Object.entries(DROP2_STRING_SETS).map(([id, set]) => ({
+    id,
+    label: set.label
+  }));
+}
+
+function generateDrop2Voicing(
+  rootMidi,
+  type,
+  inversion,
+  stringSetId,
+  maxFret = 24
+) {
+  if (type !== 'major7') {
+    return null;
+  }
+
+  const stringSet = DROP2_STRING_SETS[stringSetId];
+  const intervalOrder = DROP2_INTERVAL_ORDERS[inversion];
+
+  if (!stringSet || !intervalOrder) {
+    return null;
+  }
+
+  const openStringMidis = [64, 59, 55, 50, 45, 40];
+
+  // The visual string indexes are high-to-low.
+  // Reverse them so the voicing is calculated bass-to-top-note.
+  const lowToHighStringIndexes = [...stringSet.stringIndexes].reverse();
+
+  const candidateNotesByString = lowToHighStringIndexes.map(
+    (stringIndex, noteIndex) => {
+      const openMidi = openStringMidis[stringIndex];
+      const targetPitchClass = pitchClass(
+        rootMidi + intervalOrder[noteIndex]
+      );
+
+      const candidates = [];
+
+      for (let fret = 0; fret <= maxFret; fret += 1) {
+        const midi = openMidi + fret;
+
+        if (pitchClass(midi) === targetPitchClass) {
+          candidates.push({ fret, midi });
+        }
+      }
+
+      return candidates;
+    }
+  );
+
+  let bestVoicing = null;
+
+  function search(stringPosition, chosenNotes) {
+    if (stringPosition === candidateNotesByString.length) {
+      const frets = [null, null, null, null, null, null];
+
+      chosenNotes.forEach((note, noteIndex) => {
+        frets[lowToHighStringIndexes[noteIndex]] = note.fret;
+      });
+
+      const frettedNotes = chosenNotes.filter((note) => note.fret > 0);
+      const lowestFret = Math.min(...frettedNotes.map((note) => note.fret));
+      const highestFret = Math.max(...frettedNotes.map((note) => note.fret));
+      const fretSpan = highestFret - lowestFret;
+
+      // Keep the generated voicing compact and guitar-playable.
+      if (fretSpan > 5) {
+        return;
+      }
+
+      const candidate = {
+        frets,
+        highestFret,
+        lowestFret,
+        fretSpan
+      };
+
+      if (
+        !bestVoicing ||
+        candidate.highestFret < bestVoicing.highestFret ||
+        (
+          candidate.highestFret === bestVoicing.highestFret &&
+          candidate.lowestFret < bestVoicing.lowestFret
+        )
+      ) {
+        bestVoicing = candidate;
+      }
+
+      return;
+    }
+
+    const previousMidi = chosenNotes.length
+      ? chosenNotes[chosenNotes.length - 1].midi
+      : -Infinity;
+
+    candidateNotesByString[stringPosition].forEach((candidate) => {
+      if (candidate.midi > previousMidi) {
+        search(stringPosition + 1, [...chosenNotes, candidate]);
+      }
+    });
+  }
+
+  search(0, []);
+
+  return bestVoicing ? bestVoicing.frets : null;
+}
+
   return {
     noteName,
     intervalInfo,
@@ -284,6 +435,8 @@ window.Theory = (() => {
     cageShapeNames,
     cagePositionsForShape,
     generateCagedVoicing,
+    generateDrop2Voicing,
+    drop2StringSets,
     chordTypes: CHORD_TYPES
   };
 })();

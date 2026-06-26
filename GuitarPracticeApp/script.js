@@ -13,6 +13,8 @@ const state = {
     type: 'major',
     extension: 'none',
     voicingFamily: 'CAGED',
+    drop2Inversion: 'root',
+    drop2StringSet: '1-4',
     cagedShape: 'C shape',
     position: 'Open',
     generatedVoicing: [0, 1, 0, 2, 3, null],
@@ -138,6 +140,9 @@ function syncChordExploreControls() {
   $('chord-build-controls').hidden = !isChordsExplore || !isBuild;
   $('quiz-analyze-button').hidden = !isChordsExplore || isBuild;
 
+  $('chord-identify-actions').hidden =
+    !isChordsExplore || isBuild;
+
   document.querySelectorAll('[data-chord-explore-mode]').forEach((button) => {
     button.classList.toggle(
       'active-quiz-answer-mode',
@@ -247,6 +252,90 @@ function populateChordBuildControls() {
   positionSelect.value = state.chords.position;
 }
 
+function getChordIdentifyNotesInPitchOrder() {
+  return [...state.chords.selected].sort(
+    (left, right) => left.midi - right.midi
+  );
+}
+
+function getSelectedChordIntervalLabels(result) {
+  const rootMidi = result.rootMidi;
+  const chordIntervals = Theory.chordInfo(result.type).intervals;
+
+  const chordLabels = {
+    0: '1',
+    1: '♭2',
+    2: '2',
+    3: '♭3',
+    4: '3',
+    5: '4',
+    6: '♭5',
+    7: '5',
+    8: '♯5',
+    9: '6',
+    10: '♭7',
+    11: '7',
+    12: '8',
+    13: '♭9',
+    14: '9',
+    15: '♭10',
+    16: '10',
+    17: '11',
+    18: '♯11',
+    19: '12',
+    20: '♭13',
+    21: '13',
+    22: '♯13',
+    23: '14',
+    24: '15'
+  };
+
+  return getChordIdentifyNotesInPitchOrder()
+    .map((note) => {
+      const semitones = note.midi - rootMidi;
+      const pitchClass = Theory.pitchClass(note.midi);
+
+      const chordInterval = chordIntervals.find(
+        (interval) =>
+          Theory.pitchClass(rootMidi + interval) === pitchClass
+      );
+
+      if (chordInterval === 18) {
+        return '♯11';
+      }
+
+      if (semitones >= 0 && chordLabels[semitones]) {
+        return chordLabels[semitones];
+      }
+
+      if (chordInterval !== undefined) {
+        return chordLabels[chordInterval] || String(chordInterval);
+      }
+
+      return Theory.intervalShort(semitones);
+    })
+    .join(' · ');
+}
+
+function getChordIdentifyDisplayName(result) {
+  const chordName = Theory.chordName(result.rootMidi, result.type);
+  const notesInPitchOrder = getChordIdentifyNotesInPitchOrder();
+
+  if (!notesInPitchOrder.length) {
+    return chordName;
+  }
+
+  const bassMidi = notesInPitchOrder[0].midi;
+  const bassPitchClass = Theory.pitchClass(bassMidi);
+  const rootPitchClass = Theory.pitchClass(result.rootMidi);
+
+  if (bassPitchClass === rootPitchClass) {
+    return chordName;
+  }
+
+  return `${chordName}/${Theory.noteName(bassMidi)}`;
+}
+
 function renderChordExploreResults() {
   const output = $('result-text');
 
@@ -343,12 +432,21 @@ function renderChordExploreResults() {
     return;
   }
 
+  const selectedNotes = getChordIdentifyNotesInPitchOrder()
+    .map((note) => Theory.noteName(note.midi))
+    .join(' · ');
+
+  const selectedIntervals = getSelectedChordIntervalLabels(result);
+
   output.innerHTML = `
-    <span class="result-strong">
-      ${result.name}
+    <span class="identified-chord-name">
+      ${getChordIdentifyDisplayName(result)}
     </span>
-    <span class="quiz-feedback">
-      ${result.notes.join(' · ')} · ${result.formula}
+    <span class="identified-chord-notes">
+      ${selectedNotes}
+    </span>
+    <span class="identified-chord-intervals">
+      ${selectedIntervals}
     </span>
   `;
 }
@@ -909,34 +1007,103 @@ function getChordBuildRootLocation() {
 function identifySelectedChord() {
   if (!state.chords.selected.length) return null;
 
-  const selectedPitchClasses = [
-    ...new Set(state.chords.selected.map((note) => Theory.pitchClass(note.midi)))
-  ];
+  const actualPitchClasses = [
+    ...new Set(
+      state.chords.selected.map((note) => Theory.pitchClass(note.midi))
+    )
+  ].sort((a, b) => a - b);
 
-  if (selectedPitchClasses.length < 3) return null;
+  if (actualPitchClasses.length < 3) return null;
 
   const rootMidi = state.chords.selected[0].midi;
   const rootPitchClass = Theory.pitchClass(rootMidi);
 
+  function buildResult(type, matchKind, omittedPitchClasses = []) {
+    const chord = Theory.chordInfo(type);
+    const expectedPitchClasses = chord.intervals
+      .map((interval) => Theory.pitchClass(rootPitchClass + interval));
+
+    return {
+      rootMidi,
+      type,
+      name: `${Theory.noteName(rootMidi)} ${chord.label}`,
+      notes: expectedPitchClasses.map((pitchClass) => Theory.noteName(pitchClass)),
+      formula: Theory.chordFormula(type),
+      matchKind,
+      omittedNotes: omittedPitchClasses.map((pitchClass) =>
+        Theory.noteName(pitchClass)
+      )
+    };
+  }
+
+  // Stage 1: exact pitch-class matching always takes priority.
   for (const [type, chord] of Object.entries(Theory.chordTypes)) {
     const expectedPitchClasses = chord.intervals
       .map((interval) => Theory.pitchClass(rootPitchClass + interval))
       .sort((a, b) => a - b);
 
-    const actualPitchClasses = [...selectedPitchClasses].sort((a, b) => a - b);
-
     if (
       expectedPitchClasses.length === actualPitchClasses.length &&
-      expectedPitchClasses.every((value, index) => value === actualPitchClasses[index])
+      expectedPitchClasses.every(
+        (pitchClass, index) => pitchClass === actualPitchClasses[index]
+      )
     ) {
-      return {
-        rootMidi,
-        type,
-        name: `${Theory.noteName(rootMidi)} ${Theory.chordInfo(type).label}`,
-        notes: expectedPitchClasses.map((pitchClass) => Theory.noteName(pitchClass)),
-        formula: Theory.chordFormula(type)
-      };
+      return buildResult(type, 'exact');
     }
+  }
+
+  // Stage 2: practical guitar voicings.
+  // Required tones preserve the chord identity.
+  // Other chord tones may be omitted.
+  const practicalRules = {
+    sixth: [0, 4, 9],
+    minor6: [0, 3, 9],
+
+    sixNine: [0, 4, 9, 14],
+
+    add9: [0, 4, 14],
+
+    dominant7: [0, 4, 10],
+    major7: [0, 4, 11],
+    minor7: [0, 3, 10],
+
+    dominant9: [0, 4, 10, 14],
+    major9: [0, 4, 11, 14],
+    minor9: [0, 3, 10, 14],
+
+    dominant13: [0, 4, 10, 21]
+  };
+
+  for (const [type, requiredIntervals] of Object.entries(practicalRules)) {
+    const chord = Theory.chordInfo(type);
+
+    if (!chord) continue;
+
+    const expectedPitchClasses = chord.intervals.map((interval) =>
+      Theory.pitchClass(rootPitchClass + interval)
+    );
+
+    const requiredPitchClasses = requiredIntervals.map((interval) =>
+      Theory.pitchClass(rootPitchClass + interval)
+    );
+
+    const includesRequiredTones = requiredPitchClasses.every(
+      (pitchClass) => actualPitchClasses.includes(pitchClass)
+    );
+
+    const containsOnlyChordTones = actualPitchClasses.every(
+      (pitchClass) => expectedPitchClasses.includes(pitchClass)
+    );
+
+    if (!includesRequiredTones || !containsOnlyChordTones) continue;
+
+    const omittedPitchClasses = expectedPitchClasses.filter(
+      (pitchClass) => !actualPitchClasses.includes(pitchClass)
+    );
+
+    if (!omittedPitchClasses.length) continue;
+
+    return buildResult(type, 'practical', omittedPitchClasses);
   }
 
   return null;
@@ -1452,6 +1619,38 @@ document.querySelectorAll('[data-chord-explore-mode]').forEach((button) => {
   });
 });
 
+$('chord-identify-play-button').addEventListener('click', () => {
+  if (
+    state.module !== 'Chords' ||
+    state.mode !== 'explore' ||
+    state.chords.exploreMode !== 'identify'
+  ) {
+    return;
+  }
+
+  const notes = getChordIdentifyNotesInPitchOrder();
+
+  notes.forEach((note, index) => {
+    setTimeout(() => {
+      playMidi(note.midi);
+    }, index * 40);
+  });
+});
+
+$('chord-identify-clear-button').addEventListener('click', () => {
+  if (
+    state.module !== 'Chords' ||
+    state.mode !== 'explore' ||
+    state.chords.exploreMode !== 'identify'
+  ) {
+    return;
+  }
+
+  state.chords.selected = [];
+  safeUpdateResults();
+  renderFretboard();
+});
+
 $('chord-root-select').addEventListener('change', (event) => {
   state.chords.rootMidi = Number(event.target.value);
   syncChordBuildVoicing();
@@ -1660,13 +1859,17 @@ $('quiz-analyze-button').addEventListener('click', () => {
       return;
     }
 
+    const selectedNotes = getChordIdentifyNotesInPitchOrder()
+      .map((note) => Theory.noteName(note.midi))
+      .join(' · ');
+
+    const selectedIntervals = getSelectedChordIntervalLabels(result);
+
     output.innerHTML = `
-      <span class="result-strong">${result.name}</span>
-      <span class="quiz-feedback">
-        ${result.notes.join(' · ')} · ${result.formula}
-      </span>
+      <span class="identified-chord-name">${getChordIdentifyDisplayName(result)}</span>
+      <span class="identified-chord-notes">${selectedNotes}</span>
+      <span class="identified-chord-intervals">${selectedIntervals}</span>
     `;
-    return;
   }
 
   if (

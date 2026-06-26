@@ -139,9 +139,31 @@
                 >
                   Identify
                 </button>
-              </div>
-            </div>
-          </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div
+                          id="chord-identify-actions"
+                          class="chord-identify-actions"
+                          hidden
+                        >
+                          <button
+                            id="chord-identify-play-button"
+                            class="chord-identify-play-button"
+                            type="button"
+                          >
+                            Play
+                          </button>
+
+                          <button
+                            id="chord-identify-clear-button"
+                            class="chord-identify-clear-button"
+                            type="button"
+                          >
+                            Clear
+                          </button>
+                        </div>
           <div id="result-content" class="result-content">
             <p id="result-text">Tap notes on the fretboard to begin.</p>
           </div>
@@ -174,6 +196,19 @@
               <option value="13">13</option>
             </select>
             <select id="chord-voicing-select" aria-label="Chord voicing"></select>
+
+            <select
+              id="chord-inversion-select"
+              aria-label="Chord inversion"
+              hidden
+            ></select>
+
+            <select
+              id="chord-string-set-select"
+              aria-label="Drop 2 string set"
+              hidden
+            ></select>
+
             <select id="chord-shape-select" aria-label="Chord CAGED shape"></select>
             <select id="chord-position-select" aria-label="Chord position"></select>
           </div>
