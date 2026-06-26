@@ -73,40 +73,91 @@ window.Theory = (() => {
     augmented: { label: 'Augmented', symbol: 'aug', intervals: [0, 4, 8] },
     sus2: { label: 'Sus2', symbol: 'sus2', intervals: [0, 2, 7] },
     sus4: { label: 'Sus4', symbol: 'sus4', intervals: [0, 5, 7] },
+
+    sixth: { label: '6', symbol: '6', intervals: [0, 4, 7, 9] },
+    minor6: { label: 'Minor 6', symbol: 'm6', intervals: [0, 3, 7, 9] },
+    add9: { label: 'Add 9', symbol: 'add9', intervals: [0, 4, 7, 14] },
+
     dominant7: { label: 'Dominant 7', symbol: '7', intervals: [0, 4, 7, 10] },
     major7: { label: 'Major 7', symbol: 'maj7', intervals: [0, 4, 7, 11] },
-    minor7: { label: 'Minor 7', symbol: 'm7', intervals: [0, 3, 7, 10] }
+    minor7: { label: 'Minor 7', symbol: 'm7', intervals: [0, 3, 7, 10] },
+
+    dominant9: { label: 'Dominant 9', symbol: '9', intervals: [0, 4, 7, 10, 14] },
+    major9: { label: 'Major 9', symbol: 'maj9', intervals: [0, 4, 7, 11, 14] },
+    minor9: { label: 'Minor 9', symbol: 'm9', intervals: [0, 3, 7, 10, 14] },
+
+    dominant11: { label: 'Dominant 11', symbol: '11', intervals: [0, 4, 7, 10, 14, 17] },
+    dominant13: { label: 'Dominant 13', symbol: '13', intervals: [0, 4, 7, 10, 14, 17, 21] }
   };
 
   const CAGED_SHAPES = {
     'C shape': {
-      rootStringIndex: 4,
-      rootOpenPitchClass: 0,
-      frets: [0, 1, 0, 2, 3, null]
+      major: {
+        rootOpenPitchClass: 0,
+        frets: [0, 1, 0, 2, 3, null]
+      },
+      minor: null,
+      dominant7: {
+        rootOpenPitchClass: 0,
+        frets: [0, 1, 3, 2, 3, null]
+      }
     },
 
     'A shape': {
-      rootStringIndex: 4,
-      rootOpenPitchClass: 9,
-      frets: [0, 2, 2, 2, 0, null]
+      major: {
+        rootOpenPitchClass: 9,
+        frets: [0, 2, 2, 2, 0, null]
+      },
+      minor: {
+        rootOpenPitchClass: 9,
+        frets: [0, 1, 2, 2, 0, null]
+      },
+      dominant7: {
+        rootOpenPitchClass: 9,
+        frets: [0, 2, 0, 2, 0, null]
+      }
     },
 
     'G shape': {
-      rootStringIndex: 5,
-      rootOpenPitchClass: 7,
-      frets: [3, 0, 0, 0, 2, 3]
+      major: {
+        rootOpenPitchClass: 7,
+        frets: [3, 0, 0, 0, 2, 3]
+      },
+      minor: null,
+      dominant7: {
+        rootOpenPitchClass: 7,
+        frets: [1, 0, 0, 0, 2, 3]
+      }
     },
 
     'E shape': {
-      rootStringIndex: 5,
-      rootOpenPitchClass: 4,
-      frets: [0, 0, 1, 2, 2, 0]
+      major: {
+        rootOpenPitchClass: 4,
+        frets: [0, 0, 1, 2, 2, 0]
+      },
+      minor: {
+        rootOpenPitchClass: 4,
+        frets: [0, 0, 0, 2, 2, 0]
+      },
+      dominant7: {
+        rootOpenPitchClass: 4,
+        frets: [0, 0, 1, 0, 2, 0]
+      }
     },
 
     'D shape': {
-      rootStringIndex: 3,
-      rootOpenPitchClass: 2,
-      frets: [2, 3, 2, 0, null, null]
+      major: {
+        rootOpenPitchClass: 2,
+        frets: [2, 3, 2, 0, null, null]
+      },
+      minor: {
+        rootOpenPitchClass: 2,
+        frets: [1, 3, 2, 0, null, null]
+      },
+      dominant7: {
+        rootOpenPitchClass: 2,
+        frets: [2, 1, 2, 0, null, null]
+      }
     }
   };
 
@@ -150,8 +201,12 @@ window.Theory = (() => {
       6: '♭5',
       7: '5',
       8: '♯5',
+      9: '6',
       10: '♭7',
-      11: '7'
+      11: '7',
+      14: '9',
+      17: '11',
+      21: '13'
     };
 
     return chord.intervals.map((interval) => labels[interval] || `${interval}`).join(' · ');
@@ -198,15 +253,18 @@ window.Theory = (() => {
     return ['Open'];
   }
 
-  function generateCagedVoicing(rootMidi, shapeName, positionName) {
+  function generateCagedVoicing(rootMidi, quality, shapeName, positionName) {
     const shape = CAGED_SHAPES[shapeName];
-    if (!shape || positionName !== 'Open') {
+    const template = shape && shape[quality];
+
+    if (!template || positionName !== 'Open') {
       return null;
     }
+
     const rootPitchClass = pitchClass(rootMidi);
-    const shift =
-      (rootPitchClass - shape.rootOpenPitchClass + 12) % 12;
-    return shape.frets.map((fret) => {
+    const shift = (rootPitchClass - template.rootOpenPitchClass + 12) % 12;
+
+    return template.frets.map((fret) => {
       if (fret === null) return null;
       return fret + shift;
     });

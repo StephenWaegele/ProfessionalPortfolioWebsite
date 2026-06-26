@@ -160,13 +160,18 @@ function isChordBuildMode() {
 function syncChordBuildVoicing() {
   if (!isChordBuildMode()) return false;
 
-  if (state.chords.type !== 'major') {
+  if (
+    state.chords.type !== 'major' &&
+    state.chords.type !== 'minor' &&
+    state.chords.type !== 'dominant7'
+  ) {
     state.chords.generatedVoicing = [null, null, null, null, null, null];
     return false;
   }
 
   const voicing = Theory.generateCagedVoicing(
     state.chords.rootMidi,
+    state.chords.type,
     state.chords.cagedShape,
     state.chords.position
   );
@@ -246,10 +251,14 @@ function renderChordExploreResults() {
   const output = $('result-text');
 
   if (state.chords.exploreMode === 'build') {
-    if (state.chords.type !== 'major') {
+    if (
+      state.chords.type !== 'major' &&
+      state.chords.type !== 'minor' &&
+      state.chords.type !== 'dominant7'
+    ) {
       output.innerHTML = `
         <span class="result-strong">
-          CAGED shapes are currently available for major chords only.
+          CAGED shapes are currently available for major, minor, and dominant 7 chords only.
         </span>
       `;
       return;
@@ -258,11 +267,16 @@ function renderChordExploreResults() {
     const supported = syncChordBuildVoicing();
 
     if (!supported) {
+      const qualityLabel = state.chords.type === 'minor' ? 'minor' : 'major';
+      const unsupportedMinorShape = state.chords.type === 'minor' && ['C shape', 'G shape'].includes(state.chords.cagedShape);
+
       output.innerHTML = `
         <span class="result-strong">
-          ${Theory.cagePositionsForShape(state.chords.cagedShape).includes(state.chords.position)
-            ? 'CAGED shapes are currently available for major chords only.'
-            : 'That CAGED shape is not available at this position yet.'}
+          ${unsupportedMinorShape
+            ? 'That minor CAGED shape is not available yet.'
+            : (Theory.cagePositionsForShape(state.chords.cagedShape).includes(state.chords.position)
+              ? `CAGED shapes are currently available for ${qualityLabel} and minor chords only.`
+              : 'That CAGED shape is not available at this position yet.')}
         </span>
       `;
       return;
@@ -277,7 +291,7 @@ function renderChordExploreResults() {
 
     output.innerHTML = `
       <span class="result-strong">
-        ${Theory.noteName(state.chords.rootMidi)} Major · CAGED ${state.chords.cagedShape} · ${state.chords.position}
+        ${Theory.noteName(state.chords.rootMidi)} ${Theory.chordInfo(state.chords.type).label} · CAGED ${state.chords.cagedShape} · ${state.chords.position}
       </span>
       <span class="quiz-feedback">
         ${chordTones} · ${Theory.chordFormula(state.chords.type)}
@@ -286,13 +300,57 @@ function renderChordExploreResults() {
     return;
   }
 
-  const uniqueNotes = [...new Set(
-    state.chords.selected.map((note) => Theory.noteName(note.midi))
-  )];
+  if (!state.chords.selected.length) {
+    output.innerHTML = `
+      <span class="result-strong">
+        Select chord tones on the fretboard. The first note is the root.
+      </span>
+    `;
+    return;
+  }
 
-  output.textContent = uniqueNotes.length
-    ? `Selected: ${uniqueNotes.join(' · ')}`
-    : 'Select chord tones on the fretboard, then press Analyze.';
+  const selectedPitchClasses = [
+    ...new Set(state.chords.selected.map((note) => Theory.pitchClass(note.midi)))
+  ];
+
+  if (selectedPitchClasses.length < 3) {
+    const rootNote = Theory.noteName(state.chords.selected[0].midi);
+
+    output.innerHTML = `
+      <span class="result-strong">
+        Root: ${rootNote}
+      </span>
+      <span class="quiz-feedback">
+        Add at least three unique pitch classes to identify a chord.
+      </span>
+    `;
+    return;
+  }
+
+  const result = identifySelectedChord();
+
+  if (!result) {
+    const rootNote = Theory.noteName(state.chords.selected[0].midi);
+
+    output.innerHTML = `
+      <span class="result-strong">
+        No exact chord match
+      </span>
+      <span class="quiz-feedback">
+        Selected root: ${rootNote}
+      </span>
+    `;
+    return;
+  }
+
+  output.innerHTML = `
+    <span class="result-strong">
+      ${result.name}
+    </span>
+    <span class="quiz-feedback">
+      ${result.notes.join(' · ')} · ${result.formula}
+    </span>
+  `;
 }
 
 function syncQuizButton() {
@@ -823,6 +881,82 @@ function toggleStringMute(stringIndex) {
   renderFretboard();
 }
 
+function getChordBuildRootLocation() {
+  const rootPitchClass = Theory.pitchClass(state.chords.rootMidi);
+  const voicing = state.chords.generatedVoicing || [];
+
+  let lowestRoot = null;
+
+  voicing.forEach((fret, stringIndex) => {
+    if (fret === null || fret === undefined) return;
+
+    const midi = strings[stringIndex].midi + fret;
+
+    if (Theory.pitchClass(midi) !== rootPitchClass) return;
+
+    if (!lowestRoot || midi < lowestRoot.midi) {
+      lowestRoot = {
+        stringIndex,
+        fret,
+        midi
+      };
+    }
+  });
+
+  return lowestRoot;
+}
+
+function identifySelectedChord() {
+  if (!state.chords.selected.length) return null;
+
+  const selectedPitchClasses = [
+    ...new Set(state.chords.selected.map((note) => Theory.pitchClass(note.midi)))
+  ];
+
+  if (selectedPitchClasses.length < 3) return null;
+
+  const rootMidi = state.chords.selected[0].midi;
+  const rootPitchClass = Theory.pitchClass(rootMidi);
+
+  for (const [type, chord] of Object.entries(Theory.chordTypes)) {
+    const expectedPitchClasses = chord.intervals
+      .map((interval) => Theory.pitchClass(rootPitchClass + interval))
+      .sort((a, b) => a - b);
+
+    const actualPitchClasses = [...selectedPitchClasses].sort((a, b) => a - b);
+
+    if (
+      expectedPitchClasses.length === actualPitchClasses.length &&
+      expectedPitchClasses.every((value, index) => value === actualPitchClasses[index])
+    ) {
+      return {
+        rootMidi,
+        type,
+        name: `${Theory.noteName(rootMidi)} ${Theory.chordInfo(type).label}`,
+        notes: expectedPitchClasses.map((pitchClass) => Theory.noteName(pitchClass)),
+        formula: Theory.chordFormula(type)
+      };
+    }
+  }
+
+  return null;
+}
+
+function promoteChordIdentifyRoot(stringIndex, fret) {
+  const selectedIndex = state.chords.selected.findIndex(
+    (note) => note.stringIndex === stringIndex && note.fret === fret
+  );
+
+  if (selectedIndex < 0) return false;
+
+  const [selectedNote] = state.chords.selected.splice(selectedIndex, 1);
+
+  state.chords.selected.unshift(selectedNote);
+  safeUpdateResults();
+  renderFretboard();
+  return true;
+}
+
 function renderFretboard() {
   const board = $('fretboard');
 
@@ -905,15 +1039,23 @@ function renderFretboard() {
         state.chords.exploreMode === 'build'
       ) {
         const voicingFret = state.chords.generatedVoicing?.[stringIndex];
+        const rootLocation = getChordBuildRootLocation();
 
-        if (fret === voicingFret && voicingFret !== null && voicingFret !== undefined) {
+        if (
+          fret === voicingFret &&
+          voicingFret !== null &&
+          voicingFret !== undefined
+        ) {
           const noteMidi = string.midi + voicingFret;
           const pitchClass = Theory.pitchClass(noteMidi);
           const rootPitchClass = Theory.pitchClass(state.chords.rootMidi);
 
-          dot.classList.add(
-            pitchClass === rootPitchClass ? 'root' : 'target'
-          );
+          const isDesignatedRoot =
+            rootLocation &&
+            stringIndex === rootLocation.stringIndex &&
+            fret === rootLocation.fret;
+
+          dot.classList.add(isDesignatedRoot ? 'root' : 'target');
 
           if (state.showNotes || state.showIntervals) {
             const interval = (pitchClass - rootPitchClass + 12) % 12;
@@ -923,6 +1065,33 @@ function renderFretboard() {
               state.showNotes ? Theory.noteName(noteMidi) : '',
               state.showIntervals
                 ? Theory.intervalShort(interval)
+                : ''
+            );
+          }
+        }
+      }
+
+      if (
+        state.module === 'Chords' &&
+        state.mode === 'explore' &&
+        state.chords.exploreMode === 'identify'
+      ) {
+        const selectedIndex = state.chords.selected.findIndex(
+          (note) => note.stringIndex === stringIndex && note.fret === fret
+        );
+
+        if (selectedIndex >= 0) {
+          dot.classList.add(selectedIndex === 0 ? 'root' : 'target');
+
+          if (state.showNotes || state.showIntervals) {
+            const rootMidi = state.chords.selected[0]?.midi;
+            const semitones = rootMidi === undefined ? 0 : midi - rootMidi;
+
+            createNoteLabel(
+              dot,
+              state.showNotes ? Theory.noteName(midi) : '',
+              state.showIntervals
+                ? Theory.intervalShort(semitones)
                 : ''
             );
           }
@@ -1037,16 +1206,43 @@ function renderFretboard() {
           if (selectedIndex >= 0) {
             state.chords.selected.splice(selectedIndex, 1);
           } else {
-            state.chords.selected.push({
-              stringIndex,
-              fret,
-              midi
-            });
+            const existingStringIndex = state.chords.selected.findIndex(
+              (note) => note.stringIndex === stringIndex
+            );
+
+            const newNote = { stringIndex, fret, midi };
+
+            if (existingStringIndex >= 0) {
+              const replacingRoot = existingStringIndex === 0;
+
+              state.chords.selected.splice(existingStringIndex, 1);
+
+              if (replacingRoot) {
+                state.chords.selected.unshift(newNote);
+              } else {
+                state.chords.selected.push(newNote);
+              }
+            } else {
+              state.chords.selected.push(newNote);
+            }
           }
 
           safeUpdateResults();
           renderFretboard();
           playMidi(midi);
+        });
+
+        cell.addEventListener('contextmenu', (event) => {
+          if (state.chords.exploreMode !== 'identify') return;
+
+          const selectedIndex = state.chords.selected.findIndex(
+            (note) => note.stringIndex === stringIndex && note.fret === fret
+          );
+
+          if (selectedIndex < 0) return;
+
+          event.preventDefault();
+          promoteChordIdentifyRoot(stringIndex, fret);
         });
 
         board.appendChild(cell);
@@ -1433,15 +1629,34 @@ $('quiz-analyze-button').addEventListener('click', () => {
     state.mode === 'explore' &&
     state.chords.exploreMode === 'identify'
   ) {
-    const result = Theory.identifyChord(
-      state.chords.selected.map((note) => note.midi)
-    );
-
     const output = $('result-text');
+    const selectedPitchClasses = [
+      ...new Set(state.chords.selected.map((note) => Theory.pitchClass(note.midi)))
+    ];
+
+    if (selectedPitchClasses.length < 3) {
+      output.innerHTML = `
+        <span class="result-strong">
+          Root: ${Theory.noteName(state.chords.selected[0]?.midi ?? 0)}
+        </span>
+        <span class="quiz-feedback">
+          Add at least three unique pitch classes to identify a chord.
+        </span>
+      `;
+      return;
+    }
+
+    const result = identifySelectedChord();
 
     if (!result) {
-      output.textContent =
-        'No exact V1 chord match. Select at least three unique chord tones.';
+      output.innerHTML = `
+        <span class="result-strong">
+          No exact chord match
+        </span>
+        <span class="quiz-feedback">
+          Selected root: ${Theory.noteName(state.chords.selected[0].midi)}
+        </span>
+      `;
       return;
     }
 

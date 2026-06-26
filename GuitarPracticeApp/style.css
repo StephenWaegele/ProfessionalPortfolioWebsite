@@ -1,4 +1,4 @@
-:root { --ink:#18202a; --muted:#66707c; --paper:#f4f2ee; --panel:#ffffff; --line:#d8d4ce; --red:#d9584c; --blue:#336eaf; --dark:#26313d; }
+:root { --ink:#18202a; --muted:#66707c; --paper:#f4f2ee; --panel:#ffffff; --line:#d8d4ce; --red:#d9584c; --blue:#4f657a; --dark:#26313d; }
 * { box-sizing:border-box; }
 html, body { margin:0; min-height:100%; background:var(--paper); color:var(--ink); font-family: ui-rounded, "SF Pro Rounded", "Avenir Next", system-ui, sans-serif; }
 button, select { font:inherit; }
@@ -52,13 +52,21 @@ button { cursor:pointer; }
 .result-strong { color:var(--ink)!important; font-weight:700; }
 .quiz-controls { padding-top:8px; display:flex; align-items:center; gap:10px; }
 .chord-build-controls {
-  flex-wrap: wrap;
+  grid-template-columns: max-content max-content max-content;
   gap: 8px;
   padding-top: 8px;
 }
 
-.chord-build-controls:not([hidden]) {
-  display: flex;
+#chord-root-select,
+#chord-type-select,
+#chord-extension-select {
+  grid-row: 1;
+}
+
+#chord-voicing-select,
+#chord-shape-select,
+#chord-position-select {
+  grid-row: 2;
 }
 .chord-build-controls select { border:1px solid var(--line); border-radius:8px; padding:7px 8px; background:white; color:var(--ink); }
 .quiz-begin, .done-button { border:0; color:white; background:var(--dark); padding:8px 13px; border-radius:10px; font-weight:800; }
@@ -300,7 +308,8 @@ button { cursor:pointer; }
 }
 
 .note-dot.target {
-  background: var(--blue);
+  background: #1d2b3a;
+  border-color: rgba(188, 196, 205, .72);
 }
 
 /* Inlay dots will be inserted inside fret cells by JavaScript. */
@@ -381,7 +390,7 @@ button { cursor:pointer; }
 }
 
 .chord-build-controls:not([hidden]) {
-  display: flex;
+  display: grid;
   gap: 8px;
   margin-top: 10px;
 }
