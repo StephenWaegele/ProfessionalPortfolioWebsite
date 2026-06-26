@@ -78,6 +78,40 @@ window.Theory = (() => {
     minor7: { label: 'Minor 7', symbol: 'm7', intervals: [0, 3, 7, 10] }
   };
 
+  const CAGED_SHAPES = {
+    'C shape': {
+      rootStringIndex: 4,
+      rootOpenPitchClass: 0,
+      frets: [0, 1, 0, 2, 3, null]
+    },
+
+    'A shape': {
+      rootStringIndex: 4,
+      rootOpenPitchClass: 9,
+      frets: [0, 2, 2, 2, 0, null]
+    },
+
+    'G shape': {
+      rootStringIndex: 5,
+      rootOpenPitchClass: 7,
+      frets: [3, 0, 0, 0, 2, 3]
+    },
+
+    'E shape': {
+      rootStringIndex: 5,
+      rootOpenPitchClass: 4,
+      frets: [0, 0, 1, 2, 2, 0]
+    },
+
+    'D shape': {
+      rootStringIndex: 3,
+      rootOpenPitchClass: 2,
+      frets: [2, 3, 2, 0, null, null]
+    }
+  };
+
+  const STRING_OPEN_PITCH_CLASSES = [4, 11, 7, 2, 9, 4];
+
   function pitchClass(midi) {
     return ((midi % 12) + 12) % 12;
   }
@@ -154,6 +188,30 @@ window.Theory = (() => {
     return null;
   }
 
+  function cageShapeNames() {
+    return Object.keys(CAGED_SHAPES);
+  }
+
+  function cagePositionsForShape(shapeName) {
+    const shape = CAGED_SHAPES[shapeName];
+    if (!shape) return [];
+    return ['Open'];
+  }
+
+  function generateCagedVoicing(rootMidi, shapeName, positionName) {
+    const shape = CAGED_SHAPES[shapeName];
+    if (!shape || positionName !== 'Open') {
+      return null;
+    }
+    const rootPitchClass = pitchClass(rootMidi);
+    const shift =
+      (rootPitchClass - shape.rootOpenPitchClass + 12) % 12;
+    return shape.frets.map((fret) => {
+      if (fret === null) return null;
+      return fret + shift;
+    });
+  }
+
   return {
     noteName,
     intervalInfo,
@@ -165,6 +223,9 @@ window.Theory = (() => {
     chordName,
     chordFormula,
     identifyChord,
+    cageShapeNames,
+    cagePositionsForShape,
+    generateCagedVoicing,
     chordTypes: CHORD_TYPES
   };
 })();

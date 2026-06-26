@@ -12,6 +12,11 @@ const state = {
     rootMidi: 0,
     type: 'major',
     extension: 'none',
+    voicingFamily: 'CAGED',
+    cagedShape: 'C shape',
+    position: 'Open',
+    generatedVoicing: [0, 1, 0, 2, 3, null],
+    mutedStrings: [false, false, false, false, false, false],
     selected: []
   },
   quiz: {
@@ -116,36 +121,10 @@ function setChordQuizType(type) {
 
 function syncModuleQuizControls() {
   const intervalControl = $('quiz-answer-mode-switch');
-  const chordControl = $('chord-quiz-mode-switch');
+  const chordControl = $('chord-explore-mode-switch');
 
   intervalControl.hidden = state.module === 'Chords';
   chordControl.hidden = state.module !== 'Chords';
-}
-
-function populateChordBuildControls() {
-  const rootSelect = $('chord-root-select');
-  const typeSelect = $('chord-type-select');
-
-  rootSelect.innerHTML = '';
-  typeSelect.innerHTML = '';
-
-  for (let midi = 0; midi < 12; midi += 1) {
-    const option = document.createElement('option');
-    option.value = midi;
-    option.textContent = Theory.noteName(midi);
-    rootSelect.appendChild(option);
-  }
-
-  Object.entries(Theory.chordTypes).forEach(([type, chord]) => {
-    const option = document.createElement('option');
-    option.value = type;
-    option.textContent = chord.label;
-    typeSelect.appendChild(option);
-  });
-
-  rootSelect.value = state.chords.rootMidi;
-  typeSelect.value = state.chords.type;
-  $('chord-extension-select').value = state.chords.extension;
 }
 
 function syncChordExploreControls() {
@@ -174,22 +153,134 @@ function getChordExploreTonePitchClasses() {
   );
 }
 
+function isChordBuildMode() {
+  return state.module === 'Chords' && state.mode === 'explore' && state.chords.exploreMode === 'build';
+}
+
+function syncChordBuildVoicing() {
+  if (!isChordBuildMode()) return false;
+
+  if (state.chords.type !== 'major') {
+    state.chords.generatedVoicing = [null, null, null, null, null, null];
+    return false;
+  }
+
+  const voicing = Theory.generateCagedVoicing(
+    state.chords.rootMidi,
+    state.chords.cagedShape,
+    state.chords.position
+  );
+
+  if (!voicing) {
+    state.chords.generatedVoicing = [null, null, null, null, null, null];
+    return false;
+  }
+
+  state.chords.generatedVoicing = voicing.map((fret, index) => (
+    state.chords.mutedStrings[index] ? null : fret
+  ));
+
+  return true;
+}
+
+function populateChordBuildControls() {
+  const rootSelect = $('chord-root-select');
+  const typeSelect = $('chord-type-select');
+  const voicingSelect = $('chord-voicing-select');
+  const shapeSelect = $('chord-shape-select');
+  const positionSelect = $('chord-position-select');
+
+  rootSelect.innerHTML = '';
+  typeSelect.innerHTML = '';
+  voicingSelect.innerHTML = '';
+  shapeSelect.innerHTML = '';
+  positionSelect.innerHTML = '';
+
+  for (let midi = 0; midi < 12; midi += 1) {
+    const option = document.createElement('option');
+    option.value = midi;
+    option.textContent = Theory.noteName(midi);
+    rootSelect.appendChild(option);
+  }
+
+  Object.entries(Theory.chordTypes).forEach(([type, chord]) => {
+    const option = document.createElement('option');
+    option.value = type;
+    option.textContent = chord.label;
+    typeSelect.appendChild(option);
+  });
+
+  const voicingOption = document.createElement('option');
+  voicingOption.value = 'CAGED';
+  voicingOption.textContent = 'CAGED';
+  voicingSelect.appendChild(voicingOption);
+
+  Theory.cageShapeNames().forEach((shapeName) => {
+    const option = document.createElement('option');
+    option.value = shapeName;
+    option.textContent = shapeName;
+    shapeSelect.appendChild(option);
+  });
+
+  Theory.cagePositionsForShape(state.chords.cagedShape).forEach((positionName) => {
+    const option = document.createElement('option');
+    option.value = positionName;
+    option.textContent = positionName;
+    positionSelect.appendChild(option);
+  });
+
+  rootSelect.value = state.chords.rootMidi;
+  typeSelect.value = state.chords.type;
+  $('chord-extension-select').value = state.chords.extension;
+  voicingSelect.value = state.chords.voicingFamily;
+  shapeSelect.value = state.chords.cagedShape;
+
+  if (!Theory.cagePositionsForShape(state.chords.cagedShape).includes(state.chords.position)) {
+    state.chords.position = Theory.cagePositionsForShape(state.chords.cagedShape)[0] || 'Open';
+  }
+
+  positionSelect.value = state.chords.position;
+}
+
 function renderChordExploreResults() {
   const output = $('result-text');
 
   if (state.chords.exploreMode === 'build') {
-    const tones = getChordExploreTonePitchClasses()
+    if (state.chords.type !== 'major') {
+      output.innerHTML = `
+        <span class="result-strong">
+          CAGED shapes are currently available for major chords only.
+        </span>
+      `;
+      return;
+    }
+
+    const supported = syncChordBuildVoicing();
+
+    if (!supported) {
+      output.innerHTML = `
+        <span class="result-strong">
+          ${Theory.cagePositionsForShape(state.chords.cagedShape).includes(state.chords.position)
+            ? 'CAGED shapes are currently available for major chords only.'
+            : 'That CAGED shape is not available at this position yet.'}
+        </span>
+      `;
+      return;
+    }
+
+    const chordTones = Theory.chordPitchClasses(
+      state.chords.rootMidi,
+      state.chords.type
+    )
       .map((pitchClass) => Theory.noteName(pitchClass))
       .join(' · ');
 
     output.innerHTML = `
       <span class="result-strong">
-        Select a root, quality, and extension.
+        ${Theory.noteName(state.chords.rootMidi)} Major · CAGED ${state.chords.cagedShape} · ${state.chords.position}
       </span>
       <span class="quiz-feedback">
-        ${Theory.chordName(state.chords.rootMidi, state.chords.type)}
-        · ${tones}
-        · ${Theory.chordFormula(state.chords.type)}
+        ${chordTones} · ${Theory.chordFormula(state.chords.type)}
       </span>
     `;
     return;
@@ -723,6 +814,15 @@ function createNoteLabel(dot, topText, bottomText) {
   dot.append(noteLine, intervalLine);
 }
 
+function toggleStringMute(stringIndex) {
+  if (!isChordBuildMode()) return;
+
+  state.chords.mutedStrings[stringIndex] = !state.chords.mutedStrings[stringIndex];
+  syncChordBuildVoicing();
+  safeUpdateResults();
+  renderFretboard();
+}
+
 function renderFretboard() {
   const board = $('fretboard');
 
@@ -733,7 +833,35 @@ function renderFretboard() {
   strings.forEach((string, stringIndex) => {
     const label = document.createElement('div');
     label.className = 'string-label';
-    label.textContent = string.name;
+
+    if (isChordBuildMode()) {
+      const muteButton = document.createElement('button');
+      const shapeMuted =
+        state.chords.generatedVoicing?.[stringIndex] === null;
+
+      const userMuted =
+        state.chords.mutedStrings[stringIndex];
+
+      const isMuted = shapeMuted || userMuted;
+
+      muteButton.type = 'button';
+      muteButton.className = 'mute-toggle';
+      muteButton.setAttribute('aria-pressed', String(isMuted));
+      muteButton.title = isMuted ? 'Unmute string' : 'Mute string';
+      muteButton.textContent = isMuted ? '×' : '•';
+
+      muteButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleStringMute(stringIndex);
+      });
+
+      label.appendChild(muteButton);
+    }
+
+    const labelText = document.createElement('span');
+    labelText.className = 'string-label-text';
+    labelText.textContent = string.name;
+    label.appendChild(labelText);
     board.appendChild(label);
 
     for (let fret = 0; fret <= state.maxFret; fret++) {
@@ -776,22 +904,23 @@ function renderFretboard() {
         state.mode === 'explore' &&
         state.chords.exploreMode === 'build'
       ) {
-        const pitchClass = Theory.pitchClass(midi);
-        const rootPitchClass = Theory.pitchClass(state.chords.rootMidi);
-        const chordTones = getChordExploreTonePitchClasses();
+        const voicingFret = state.chords.generatedVoicing?.[stringIndex];
 
-        if (chordTones.includes(pitchClass)) {
+        if (fret === voicingFret && voicingFret !== null && voicingFret !== undefined) {
+          const noteMidi = string.midi + voicingFret;
+          const pitchClass = Theory.pitchClass(noteMidi);
+          const rootPitchClass = Theory.pitchClass(state.chords.rootMidi);
+
           dot.classList.add(
             pitchClass === rootPitchClass ? 'root' : 'target'
           );
 
           if (state.showNotes || state.showIntervals) {
-            const interval =
-              (pitchClass - rootPitchClass + 12) % 12;
+            const interval = (pitchClass - rootPitchClass + 12) % 12;
 
             createNoteLabel(
               dot,
-              state.showNotes ? Theory.noteName(midi) : '',
+              state.showNotes ? Theory.noteName(noteMidi) : '',
               state.showIntervals
                 ? Theory.intervalShort(interval)
                 : ''
@@ -963,46 +1092,62 @@ function renderFretboard() {
   });
 }
 
+function clearModuleInteractionState() {
+  state.selected = [];
+  state.chords.selected = [];
+  state.chords.generatedVoicing = [null, null, null, null, null, null];
+  state.chords.mutedStrings = [false, false, false, false, false, false];
+
+  state.quiz.answerSelection = null;
+  state.quiz.chordSelection = [];
+  state.quiz.root = null;
+  state.quiz.target = null;
+  state.quiz.targetMidi = null;
+  state.quiz.interval = null;
+  state.quiz.chordQuestion = null;
+  state.quiz.options = [];
+
+  resetQuiz();
+}
+
 function setModule(name) {
+  clearModuleInteractionState();
+
   state.module = name;
+  state.mode = 'explore';
 
   $('module-title').textContent = name;
   $('module-menu').hidden = true;
   $('module-picker-button').setAttribute('aria-expanded', 'false');
 
-  resetQuiz();
-  state.selected = [];
+  document.querySelectorAll('.mode-button').forEach((button) => {
+    button.classList.toggle(
+      'active-mode',
+      button.dataset.mode === 'explore'
+    );
+  });
+
+  document.querySelector('.study-workspace')
+    .classList.remove('quiz-mode');
 
   if (name === 'Chords') {
-    state.mode = 'explore';
     state.chords.exploreMode = 'build';
     state.chords.rootMidi = 0;
     state.chords.type = 'major';
     state.chords.extension = 'none';
-    state.chords.selected = [];
+    state.chords.voicingFamily = 'CAGED';
+    state.chords.cagedShape = 'C shape';
+    state.chords.position = 'Open';
+    state.chords.mutedStrings = [false, false, false, false, false, false];
 
-    document.querySelectorAll('.mode-button').forEach((button) => {
-      button.classList.toggle(
-        'active-mode',
-        button.dataset.mode === 'explore'
-      );
-    });
-
-    document.querySelector('.study-workspace')
-      .classList.remove('quiz-mode');
-
-
+    populateChordBuildControls();
+    syncChordBuildVoicing();
   }
 
   syncModuleQuizControls();
-syncChordExploreControls();
-
-if (name === 'Chords') {
-  populateChordBuildControls();
-}
-
-safeUpdateResults();
-renderFretboard();
+  syncChordExploreControls();
+  safeUpdateResults();
+  renderFretboard();
 }
 
 function setMode(mode) {
@@ -1113,18 +1258,42 @@ document.querySelectorAll('[data-chord-explore-mode]').forEach((button) => {
 
 $('chord-root-select').addEventListener('change', (event) => {
   state.chords.rootMidi = Number(event.target.value);
+  syncChordBuildVoicing();
   safeUpdateResults();
   renderFretboard();
 });
 
 $('chord-type-select').addEventListener('change', (event) => {
   state.chords.type = event.target.value;
+  syncChordBuildVoicing();
   safeUpdateResults();
   renderFretboard();
 });
 
 $('chord-extension-select').addEventListener('change', (event) => {
   state.chords.extension = event.target.value;
+  safeUpdateResults();
+  renderFretboard();
+});
+
+$('chord-voicing-select').addEventListener('change', (event) => {
+  state.chords.voicingFamily = event.target.value;
+  syncChordBuildVoicing();
+  safeUpdateResults();
+  renderFretboard();
+});
+
+$('chord-shape-select').addEventListener('change', (event) => {
+  state.chords.cagedShape = event.target.value;
+  populateChordBuildControls();
+  syncChordBuildVoicing();
+  safeUpdateResults();
+  renderFretboard();
+});
+
+$('chord-position-select').addEventListener('change', (event) => {
+  state.chords.position = event.target.value;
+  syncChordBuildVoicing();
   safeUpdateResults();
   renderFretboard();
 });

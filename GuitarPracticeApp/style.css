@@ -51,6 +51,16 @@ button { cursor:pointer; }
 .result-content p { margin:0; font-size:.93rem; color:var(--muted); }
 .result-strong { color:var(--ink)!important; font-weight:700; }
 .quiz-controls { padding-top:8px; display:flex; align-items:center; gap:10px; }
+.chord-build-controls {
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.chord-build-controls:not([hidden]) {
+  display: flex;
+}
+.chord-build-controls select { border:1px solid var(--line); border-radius:8px; padding:7px 8px; background:white; color:var(--ink); }
 .quiz-begin, .done-button { border:0; color:white; background:var(--dark); padding:8px 13px; border-radius:10px; font-weight:800; }
 #quiz-status { color:var(--muted); font-size:.8rem; }
 /* =========================
@@ -97,8 +107,10 @@ button { cursor:pointer; }
 /* String labels sit outside the wooden neck. */
 .string-label {
   height: var(--string-row-height);
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
 
   background: var(--paper);
   color: var(--muted);
@@ -108,6 +120,30 @@ button { cursor:pointer; }
 
   position: relative;
   z-index: 4;
+}
+
+.string-label-text {
+  line-height: 1;
+}
+
+.mute-toggle {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: white;
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: .62rem;
+  line-height: 1;
+}
+
+.mute-toggle[aria-pressed="true"] {
+  background: var(--red);
+  border-color: var(--red);
+  color: white;
 }
 
 /* Each fret cell owns its own right-side fret wire. */
@@ -319,7 +355,7 @@ button { cursor:pointer; }
 
 /* Keep dialogs hidden until JavaScript explicitly opens them. */
 
-#chord-explore-mode-switch {
+#chord-explore-mode-switch:not([hidden]) {
   display: flex;
   padding: 2px;
   background: #ebe8e3;
@@ -344,7 +380,7 @@ button { cursor:pointer; }
   box-shadow: 0 1px 3px rgba(0,0,0,.12);
 }
 
-.chord-build-controls {
+.chord-build-controls:not([hidden]) {
   display: flex;
   gap: 8px;
   margin-top: 10px;
