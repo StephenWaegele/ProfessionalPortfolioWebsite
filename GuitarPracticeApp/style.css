@@ -65,14 +65,17 @@ button { cursor:pointer; }
 
 .fretboard {
   --fret-count: 13;
+  --fretted-count: 12;
   --string-row-height: 44px;
   --label-column-width: 46px;
+  --open-string-width: 38px;
 
   position: relative;
   display: grid;
   grid-template-columns:
     var(--label-column-width)
-    repeat(var(--fret-count), minmax(0, 1fr));
+    var(--open-string-width)
+    repeat(var(--fretted-count), minmax(0, 1fr));
 
   width: 100%;
   overflow: hidden;
@@ -147,8 +150,10 @@ button { cursor:pointer; }
 
 /* Nut immediately after the open-string position. */
 /* The nut is thicker and darker than normal fret wire. */
+/* Fret 0 is the open-string lane before the nut. */
 .fret-cell[data-fret="0"] {
   border-right: 0;
+  background: rgba(255,255,255,.035);
   box-shadow: none;
 }
 
@@ -157,7 +162,7 @@ button { cursor:pointer; }
   position: absolute;
 
   top: 0;
-  right: -3px;
+  right: -4px;
   bottom: 0;
 
   width: 8px;
@@ -283,17 +288,11 @@ button { cursor:pointer; }
   pointer-events: none;
 }
 
-.fret-inlay.single {
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.fret-inlay.double-top {
-  top: 24%;
-}
-
+.fret-inlay.single,
+.fret-inlay.double-top,
 .fret-inlay.double-bottom {
-  bottom: 24%;
+  top: 0;
+  transform: translate(-50%, -50%);
 }
 
 @media (min-width: 760px) {
@@ -393,4 +392,158 @@ button { cursor:pointer; }
 
 .study-title-group .chevron {
   font-size: .8em;
+}
+
+/* Quiz controls only exist visually while Quiz mode is active. */
+.study-workspace:not(.quiz-mode) #quiz-controls {
+  display: none !important;
+}
+
+.sound-icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.sound-icon-off {
+  display: none;
+}
+
+.sound-muted {
+  color: #a6abb3;
+  opacity: .72;
+}
+
+.sound-muted .sound-icon-on {
+  display: none;
+}
+
+.sound-muted .sound-icon-off {
+  display: block;
+}
+
+/* Sound control stays flat when enabled. */
+#sound-toggle.active-toggle {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* Keep the muted state visibly subdued. */
+#sound-toggle.sound-muted {
+  color: #a6abb3;
+  opacity: .72;
+}
+
+/* Keep the interval icon visually light and clean. */
+#interval-toggle {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: .92rem;
+  font-weight: 400;
+  letter-spacing: -.04em;
+}
+
+.quiz-begin {
+  background: #2f9a5f;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.18),
+    0 3px 8px rgba(30,105,63,.22);
+}
+
+/* Quiz-only answer format selector. */
+.mode-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.quiz-answer-mode-switch {
+  display: none;
+  padding: 2px;
+  background: #ebe8e3;
+  border-radius: 8px;
+}
+
+.study-workspace.quiz-mode .quiz-answer-mode-switch {
+  display: flex;
+}
+
+.quiz-answer-mode-button {
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: .66rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.quiz-answer-mode-button.active-quiz-answer-mode {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(0,0,0,.12);
+}
+
+/* Settings-modal section divider. */
+.settings-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 2px solid var(--line);
+}
+
+.settings-section-title {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.quiz-setting-row {
+  border-top: 0;
+  padding-bottom: 0;
+}
+
+#quiz-question-count {
+  width: 76px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 8px;
+  background: white;
+  color: var(--ink);
+  text-align: right;
+}
+
+.quiz-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.quiz-choice-button {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 9px 10px;
+  background: #fff;
+  color: var(--ink);
+  font-size: .82rem;
+  font-weight: 800;
+}
+
+.quiz-choice-button:active {
+  transform: translateY(1px);
+}
+
+.quiz-choice-button:disabled {
+  cursor: default;
+  opacity: .58;
 }

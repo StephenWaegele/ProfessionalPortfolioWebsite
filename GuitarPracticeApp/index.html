@@ -62,22 +62,75 @@
           </div>
           <div class="toolbar-icons" aria-label="Display controls">
             <button id="notes-toggle" class="tool-toggle" type="button" aria-pressed="false" title="Show note names">♪</button>
-            <button id="interval-toggle" class="tool-toggle" type="button" aria-pressed="false" title="Show interval labels">I</button>
-            <button id="sound-toggle" class="tool-toggle active-toggle" type="button" aria-pressed="true" title="Toggle sound">⌁</button>
+            <button id="interval-toggle" class="tool-toggle" type="button" aria-pressed="false" title="Show interval labels">IV</button>
+            <button
+              id="sound-toggle"
+              class="tool-toggle active-toggle"
+              type="button"
+              aria-pressed="true"
+              aria-label="Turn sound off"
+              title="Sound on"
+            >
+              <svg class="sound-icon sound-icon-on" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 10v4h4l5 4V6L8 10H4Z"></path>
+                <path d="M16 9a4 4 0 0 1 0 6"></path>
+                <path d="M19 6a8 8 0 0 1 0 12"></path>
+              </svg>
+
+              <svg class="sound-icon sound-icon-off" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 10v4h4l5 4V6L8 10H4Z"></path>
+                <path d="M16 9a4 4 0 0 1 0 6"></path>
+                <path d="M3 3l18 18"></path>
+              </svg>
+            </button>
           </div>
         </div>
 
         <section class="results-panel" aria-live="polite">
           <div class="results-topline">
             <h2>Results</h2>
-            <div class="mode-switch" role="group" aria-label="Study mode">
-              <button class="mode-button active-mode" type="button" data-mode="explore">Explore</button>
-              <button class="mode-button" type="button" data-mode="quiz">Quiz</button>
+            <div class="mode-controls">
+              <div class="mode-switch" role="group" aria-label="Study mode">
+                <button class="mode-button active-mode" type="button" data-mode="explore">Explore</button>
+                <button class="mode-button" type="button" data-mode="quiz">Quiz</button>
+              </div>
+
+              <div
+                id="quiz-answer-mode-switch"
+                class="quiz-answer-mode-switch"
+                role="group"
+                aria-label="Quiz answer mode"
+              >
+                <button
+                  class="quiz-answer-mode-button"
+                  type="button"
+                  data-quiz-answer-mode="multiple-choice"
+                >
+                  MC
+                </button>
+
+                <button
+                  class="quiz-answer-mode-button active-quiz-answer-mode"
+                  type="button"
+                  data-quiz-answer-mode="draw"
+                >
+                  Draw
+                </button>
+              </div>
             </div>
           </div>
           <div id="result-content" class="result-content">
             <p id="result-text">Tap notes on the fretboard to begin.</p>
           </div>
+
+          <div
+            id="quiz-choice-grid"
+            class="quiz-choice-grid"
+            role="group"
+            aria-label="Multiple choice interval answers"
+            hidden
+          ></div>
+
           <div id="quiz-controls" class="quiz-controls" hidden>
             <button id="quiz-begin-button" class="quiz-begin" type="button">Begin</button>
             <span id="quiz-status">10 questions · 10 seconds</span>
@@ -122,6 +175,45 @@
       <label class="settings-row toggle-row">Sound
         <input id="settings-sound-checkbox" type="checkbox" checked />
       </label>
+      <section class="settings-section quiz-settings-section" aria-labelledby="quiz-settings-title">
+        <h3 id="quiz-settings-title" class="settings-section-title">Quiz Settings</h3>
+
+        <label class="settings-row quiz-setting-row">
+          Questions per quiz
+          <input
+            id="quiz-question-count"
+            type="number"
+            min="1"
+            step="1"
+            value="10"
+            inputmode="numeric"
+          />
+        </label>
+
+        <label class="settings-row quiz-setting-row">
+          Question timer
+          <select id="quiz-question-timer-select">
+            <option value="3">3 seconds</option>
+            <option value="5">5 seconds</option>
+            <option value="10" selected>10 seconds</option>
+            <option value="15">15 seconds</option>
+            <option value="30">30 seconds</option>
+            <option value="60">60 seconds</option>
+          </select>
+        </label>
+
+        <label class="settings-row quiz-setting-row">
+          Question reset timer
+          <select id="quiz-review-delay-select">
+            <option value="0">No delay</option>
+            <option value="1">1 second</option>
+            <option value="2">2 seconds</option>
+            <option value="3" selected>3 seconds</option>
+            <option value="5">5 seconds</option>
+            <option value="10">10 seconds</option>
+          </select>
+        </label>
+      </section>
       <button id="close-settings-done" class="done-button" type="button">Done</button>
     </div>
   </div>

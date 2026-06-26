@@ -14,10 +14,21 @@ const state = {
     secondsPerQuestion: 10,
     timeRemaining: 10,
     timerId: null,
+    advanceTimerId: null,
     root: null,
     targetMidi: null,
     interval: null,
-    feedback: ''
+    feedback: '',
+    answerMode: 'draw',
+    answerSelection: null,
+    target: null,
+    options: [],
+    reviewDelaySeconds: 3,
+    correctAnswers: 0,
+    incorrectAnswers: 0,
+    timedOutAnswers: 0,
+    awaitingNextQuestion: false,
+    completed: false
   }
 };
 
@@ -43,11 +54,81 @@ function switchScreen(name) {
   state.screen = name;
 }
 
+function updateQuizStatus() {
+  const total = state.quiz.totalQuestions;
+  const seconds = state.quiz.secondsPerQuestion;
+
+  $('quiz-status').textContent =
+    `${total} ${total === 1 ? 'question' : 'questions'} · ${seconds} seconds`;
+}
+
+function setQuizAnswerMode(mode) {
+  state.quiz.answerMode = mode;
+
+  document.querySelectorAll('.quiz-answer-mode-button').forEach((button) => {
+    button.classList.toggle(
+      'active-quiz-answer-mode',
+      button.dataset.quizAnswerMode === mode
+    );
+  });
+
+  if (state.quiz.active) {
+    resetQuiz();
+    state.selected = [];
+    safeUpdateResults();
+    renderFretboard();
+  } else {
+    renderQuizChoices();
+  }
+}
+
 function syncQuizButton() {
   const button = $('quiz-begin-button');
 
   button.textContent = state.quiz.active ? 'Stop' : 'Begin';
   button.classList.toggle('quiz-stop', state.quiz.active);
+}
+
+function createMultipleChoiceOptions(correctInterval) {
+  const candidates = [
+    -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1,
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+  ].filter((interval) => interval !== correctInterval);
+
+  const options = [correctInterval];
+
+  while (options.length < 4) {
+    const index = Math.floor(Math.random() * candidates.length);
+    const candidate = candidates.splice(index, 1)[0];
+    options.push(candidate);
+  }
+
+  return options.sort(() => Math.random() - 0.5);
+}
+
+function renderQuizChoices() {
+  const grid = $('quiz-choice-grid');
+
+  const showChoices =
+    state.quiz.active &&
+    state.quiz.answerMode === 'multiple-choice';
+
+  grid.hidden = !showChoices;
+  grid.innerHTML = '';
+
+  if (!showChoices) return;
+
+  state.quiz.options.forEach((interval) => {
+    const button = document.createElement('button');
+
+    button.type = 'button';
+    button.className = 'quiz-choice-button';
+    button.dataset.interval = interval;
+    button.textContent = Theory.intervalShort(interval);
+    button.disabled = state.quiz.awaitingNextQuestion;
+
+    grid.appendChild(button);
+  });
 }
 
 function stopQuizTimer() {
@@ -57,8 +138,16 @@ function stopQuizTimer() {
   }
 }
 
+function stopQuizAdvanceTimer() {
+  if (state.quiz.advanceTimerId) {
+    clearTimeout(state.quiz.advanceTimerId);
+    state.quiz.advanceTimerId = null;
+  }
+}
+
 function resetQuiz() {
   stopQuizTimer();
+  stopQuizAdvanceTimer();
 
   state.quiz.active = false;
   state.quiz.questionNumber = 0;
@@ -67,6 +156,15 @@ function resetQuiz() {
   state.quiz.targetMidi = null;
   state.quiz.interval = null;
   state.quiz.feedback = '';
+  state.quiz.answerSelection = null;
+  state.quiz.target = null;
+  state.quiz.options = [];
+  state.quiz.correctAnswers = 0;
+  state.quiz.incorrectAnswers = 0;
+  state.quiz.timedOutAnswers = 0;
+  state.quiz.awaitingNextQuestion = false;
+  state.quiz.completed = false;
+
   syncQuizButton();
 }
 
@@ -111,9 +209,29 @@ function safeUpdateResults() {
 function updateQuizResults() {
   const output = $('result-text');
 
+  if (state.quiz.completed) {
+    const total = state.quiz.totalQuestions;
+    const correct = state.quiz.correctAnswers;
+    const accuracy = Math.round((correct / total) * 100);
+
+    output.innerHTML = `
+      <span class="result-strong">Quiz Complete</span>
+      <span class="quiz-feedback">
+        Score: ${correct} / ${total} · ${accuracy}% accuracy ·
+        Correct: ${correct} · Incorrect: ${state.quiz.incorrectAnswers} ·
+        Timed out: ${state.quiz.timedOutAnswers}
+      </span>
+    `;
+    renderQuizChoices();
+    return;
+  }
+
   if (!state.quiz.active) {
+    const total = state.quiz.totalQuestions;
+
     output.textContent =
-      'Press Begin to start a 10-question interval quiz.';
+      `Press Begin to start a ${total}-question interval quiz.`;
+    renderQuizChoices();
     return;
   }
 
@@ -127,8 +245,43 @@ function updateQuizResults() {
       · Find ${intervalLabel} ${direction} ${rootName}
     </span>
     <span class="quiz-timer">Time: ${state.quiz.timeRemaining}s</span>
+    <span class="quiz-feedback">
+      Score: ${state.quiz.correctAnswers} / ${
+        state.quiz.correctAnswers +
+        state.quiz.incorrectAnswers +
+        state.quiz.timedOutAnswers
+      } answered
+    </span>
     ${state.quiz.feedback ? `<span class="quiz-feedback">${state.quiz.feedback}</span>` : ''}
   `;
+  renderQuizChoices();
+}
+
+function finishQuestion(outcome) {
+  if (!state.quiz.active || state.quiz.awaitingNextQuestion) return;
+
+  stopQuizTimer();
+  state.quiz.awaitingNextQuestion = true;
+
+  if (outcome === 'correct') {
+    state.quiz.correctAnswers += 1;
+    state.quiz.feedback = 'Correct.';
+  } else if (outcome === 'incorrect') {
+    state.quiz.incorrectAnswers += 1;
+    state.quiz.feedback = 'Incorrect.';
+  } else {
+    state.quiz.timedOutAnswers += 1;
+    state.quiz.feedback =
+      `Time expired. The answer was ${Theory.noteName(state.quiz.targetMidi)}.`;
+  }
+
+  updateQuizResults();
+  renderFretboard();
+
+  state.quiz.advanceTimerId = setTimeout(() => {
+    state.quiz.advanceTimerId = null;
+    advanceQuiz();
+  }, state.quiz.reviewDelaySeconds * 1000);
 }
 
 function playMidi(midi) {
@@ -197,7 +350,10 @@ function createQuizQuestion() {
         validQuestions.push({
           root,
           interval,
-          targetMidi
+          targetMidi,
+          target: validTargets[
+            Math.floor(Math.random() * validTargets.length)
+          ]
         });
       }
     });
@@ -209,10 +365,18 @@ function createQuizQuestion() {
   state.quiz.root = question.root;
   state.quiz.interval = question.interval;
   state.quiz.targetMidi = question.targetMidi;
+  state.quiz.target = question.target;
   state.quiz.timeRemaining = state.quiz.secondsPerQuestion;
   state.quiz.feedback = '';
+  state.quiz.answerSelection = null;
+  state.quiz.options =
+    state.quiz.answerMode === 'multiple-choice'
+      ? createMultipleChoiceOptions(question.interval)
+      : [];
+  state.quiz.awaitingNextQuestion = false;
 
   updateQuizResults();
+  renderQuizChoices();
   renderFretboard();
   playMidi(state.quiz.root.midi);
 }
@@ -225,16 +389,7 @@ function startQuizTimer() {
     updateQuizResults();
 
     if (state.quiz.timeRemaining <= 0) {
-      stopQuizTimer();
-
-      state.quiz.feedback =
-        `Time expired. The answer was ${Theory.noteName(state.quiz.targetMidi)}.`;
-
-      updateQuizResults();
-
-      setTimeout(() => {
-        advanceQuiz();
-      }, 1200);
+      finishQuestion('timeout');
     }
   }, 1000);
 }
@@ -242,7 +397,13 @@ function startQuizTimer() {
 function startQuiz() {
   state.selected = [];
   state.quiz.active = true;
+  state.quiz.completed = false;
   state.quiz.questionNumber = 1;
+  state.quiz.correctAnswers = 0;
+  state.quiz.incorrectAnswers = 0;
+  state.quiz.timedOutAnswers = 0;
+  state.quiz.awaitingNextQuestion = false;
+
   syncQuizButton();
 
   createQuizQuestion();
@@ -251,10 +412,14 @@ function startQuiz() {
 
 function advanceQuiz() {
   stopQuizTimer();
+  stopQuizAdvanceTimer();
 
   if (state.quiz.questionNumber >= state.quiz.totalQuestions) {
     state.quiz.active = false;
-    state.quiz.feedback = 'Quiz complete.';
+    state.quiz.completed = true;
+    state.quiz.awaitingNextQuestion = false;
+
+    syncQuizButton();
     updateQuizResults();
     renderFretboard();
     return;
@@ -265,26 +430,26 @@ function advanceQuiz() {
   startQuizTimer();
 }
 
-function handleQuizAnswer(midi) {
-  if (!state.quiz.active) return;
-
-  playMidi(midi);
-
-  if (midi === state.quiz.targetMidi) {
-    stopQuizTimer();
-
-    state.quiz.feedback = 'Correct.';
-    updateQuizResults();
-
-    setTimeout(() => {
-      advanceQuiz();
-    }, 700);
-
+function handleQuizAnswer(stringIndex, fret, midi) {
+  if (
+    !state.quiz.active ||
+    state.quiz.answerMode !== 'draw' ||
+    state.quiz.awaitingNextQuestion
+  ) {
     return;
   }
 
-  state.quiz.feedback = 'Try again.';
-  updateQuizResults();
+  playMidi(midi);
+
+  state.quiz.answerSelection = {
+    stringIndex,
+    fret,
+    midi
+  };
+
+  finishQuestion(
+    midi === state.quiz.targetMidi ? 'correct' : 'incorrect'
+  );
 }
 
 function createNoteLabel(dot, topText, bottomText) {
@@ -304,6 +469,7 @@ function renderFretboard() {
 
   board.innerHTML = '';
   board.style.setProperty('--fret-count', state.maxFret + 1);
+  board.style.setProperty('--fretted-count', state.maxFret);
 
   strings.forEach((string, stringIndex) => {
     const label = document.createElement('div');
@@ -325,7 +491,7 @@ function renderFretboard() {
 
       if (inlays.has(fret)) {
         if (fret === 12 || fret === 24) {
-          if (stringIndex === 1) {
+          if (stringIndex === 2) {
             const topMarker = document.createElement('span');
             topMarker.className = 'fret-inlay double-top';
             cell.appendChild(topMarker);
@@ -336,7 +502,7 @@ function renderFretboard() {
             bottomMarker.className = 'fret-inlay double-bottom';
             cell.appendChild(bottomMarker);
           }
-        } else if (stringIndex === 2) {
+        } else if (stringIndex === 3) {
           const marker = document.createElement('span');
           marker.className = 'fret-inlay single';
           cell.appendChild(marker);
@@ -353,7 +519,52 @@ function renderFretboard() {
           fret === state.quiz.root.fret
         ) {
           dot.classList.add('root');
-          createNoteLabel(dot, Theory.noteName(midi), 'I');
+
+          if (state.showNotes || state.showIntervals) {
+            createNoteLabel(
+              dot,
+              state.showNotes ? Theory.noteName(midi) : '',
+              state.showIntervals ? 'I' : ''
+            );
+          }
+        }
+
+        if (
+          state.quiz.answerMode === 'multiple-choice' &&
+          state.quiz.target &&
+          stringIndex === state.quiz.target.stringIndex &&
+          fret === state.quiz.target.fret
+        ) {
+          dot.classList.add('target');
+
+          if (state.showNotes || state.showIntervals) {
+            createNoteLabel(
+              dot,
+              state.showNotes ? Theory.noteName(midi) : '',
+              state.showIntervals
+                ? Theory.intervalShort(state.quiz.interval)
+                : ''
+            );
+          }
+        }
+
+        if (
+          state.quiz.answerMode === 'draw' &&
+          state.quiz.answerSelection &&
+          stringIndex === state.quiz.answerSelection.stringIndex &&
+          fret === state.quiz.answerSelection.fret
+        ) {
+          dot.classList.add('target');
+
+          if (state.showNotes || state.showIntervals) {
+            createNoteLabel(
+              dot,
+              state.showNotes ? Theory.noteName(midi) : '',
+              state.showIntervals
+                ? Theory.intervalShort(midi - state.quiz.root.midi)
+                : ''
+            );
+          }
         }
       } else {
         const selectedPosition = state.selected.findIndex(
@@ -403,7 +614,7 @@ function renderFretboard() {
         }
 
         if (state.mode === 'quiz') {
-          handleQuizAnswer(midi);
+          handleQuizAnswer(stringIndex, fret, midi);
           return;
         }
 
@@ -448,7 +659,8 @@ function setMode(mode) {
     );
   });
 
-  $('quiz-controls').hidden = mode !== 'quiz';
+  const workspace = document.querySelector('.study-workspace');
+  workspace.classList.toggle('quiz-mode', mode === 'quiz');
 
   resetQuiz();
   state.selected = [];
@@ -460,8 +672,18 @@ function setMode(mode) {
 function syncSound(on) {
   state.soundOn = on;
 
-  $('sound-toggle').classList.toggle('active-toggle', on);
-  $('sound-toggle').setAttribute('aria-pressed', String(on));
+  const soundButton = $('sound-toggle');
+
+  soundButton.classList.toggle('active-toggle', on);
+  soundButton.classList.toggle('sound-muted', !on);
+
+  soundButton.setAttribute('aria-pressed', String(on));
+  soundButton.setAttribute('title', on ? 'Sound on' : 'Sound off');
+  soundButton.setAttribute(
+    'aria-label',
+    on ? 'Turn sound off' : 'Turn sound on'
+  );
+
   $('settings-sound-checkbox').checked = on;
 }
 
@@ -505,6 +727,64 @@ document.querySelectorAll('.mode-button').forEach((button) => {
   button.addEventListener('click', () => {
     setMode(button.dataset.mode);
   });
+});
+
+document.querySelectorAll('.quiz-answer-mode-button').forEach((button) => {
+  button.addEventListener('click', () => {
+    setQuizAnswerMode(button.dataset.quizAnswerMode);
+  });
+});
+
+$('quiz-choice-grid').addEventListener('click', (event) => {
+  const button = event.target.closest('.quiz-choice-button');
+
+  if (
+    !button ||
+    !state.quiz.active ||
+    state.quiz.answerMode !== 'multiple-choice' ||
+    state.quiz.awaitingNextQuestion
+  ) {
+    return;
+  }
+
+  const selectedInterval = Number(button.dataset.interval);
+
+  finishQuestion(
+    selectedInterval === state.quiz.interval ? 'correct' : 'incorrect'
+  );
+});
+
+$('quiz-question-count').addEventListener('change', (event) => {
+  const requestedCount = Number(event.target.value);
+
+  state.quiz.totalQuestions = Math.max(
+    1,
+    Number.isFinite(requestedCount) ? Math.floor(requestedCount) : 10
+  );
+
+  event.target.value = state.quiz.totalQuestions;
+
+  if (state.quiz.active) {
+    resetQuiz();
+    state.selected = [];
+    renderFretboard();
+  }
+
+  updateQuizStatus();
+  safeUpdateResults();
+});
+
+$('quiz-question-timer-select').addEventListener('change', (event) => {
+  state.quiz.secondsPerQuestion = Number(event.target.value);
+
+  if (state.quiz.active) {
+    resetQuiz();
+    state.selected = [];
+    renderFretboard();
+  }
+
+  updateQuizStatus();
+  safeUpdateResults();
 });
 
 $('decrease-frets').addEventListener('click', () => {
@@ -599,6 +879,10 @@ $('settings-fret-select').addEventListener('change', (event) => {
   renderFretboard();
 });
 
+$('quiz-review-delay-select').addEventListener('change', (event) => {
+  state.quiz.reviewDelaySeconds = Number(event.target.value);
+});
+
 $('settings-sound-checkbox').addEventListener('change', (event) => {
   syncSound(event.target.checked);
 });
@@ -609,6 +893,8 @@ $('settings-overlay').addEventListener('click', (event) => {
   }
 });
 
+setQuizAnswerMode(state.quiz.answerMode);
+updateQuizStatus();
 setMode('explore');
 renderFretboard();
 safeUpdateResults();
