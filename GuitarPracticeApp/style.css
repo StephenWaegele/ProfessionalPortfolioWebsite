@@ -318,6 +318,56 @@ button { cursor:pointer; }
 }
 
 /* Keep dialogs hidden until JavaScript explicitly opens them. */
+
+#chord-explore-mode-switch {
+  display: flex;
+  padding: 2px;
+  background: #ebe8e3;
+  border-radius: 8px;
+}
+
+#chord-explore-mode-switch .quiz-answer-mode-button {
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: .66rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+#chord-explore-mode-switch
+  .quiz-answer-mode-button.active-quiz-answer-mode {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(0,0,0,.12);
+}
+
+.chord-build-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chord-build-controls select,
+.quiz-analyze {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 8px 10px;
+  background: #fff;
+  color: var(--ink);
+  font-size: .82rem;
+  font-weight: 750;
+}
+
+.quiz-analyze {
+  border: 0;
+  color: white;
+  background: var(--dark);
+  font-weight: 800;
+}
+
 .overlay[hidden] { display: none !important; }
 
 /* Two-line labels inside selected note circles. */
@@ -520,6 +570,12 @@ button { cursor:pointer; }
   background: white;
   color: var(--ink);
   text-align: right;
+}
+
+#chord-explore-mode-switch .quiz-answer-mode-button.active-quiz-answer-mode {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(0,0,0,.12);
 }
 
 .quiz-choice-grid {

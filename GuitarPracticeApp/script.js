@@ -7,6 +7,13 @@ const state = {
   showIntervals: false,
   soundOn: true,
   selected: [],
+  chords: {
+    exploreMode: 'build',
+    rootMidi: 0,
+    type: 'major',
+    extension: 'none',
+    selected: []
+  },
   quiz: {
     active: false,
     questionNumber: 0,
@@ -21,6 +28,9 @@ const state = {
     feedback: '',
     answerMode: 'draw',
     answerSelection: null,
+    chordQuestionType: 'identify',
+    chordQuestion: null,
+    chordSelection: [],
     target: null,
     options: [],
     reviewDelaySeconds: 3,
@@ -65,10 +75,32 @@ function updateQuizStatus() {
 function setQuizAnswerMode(mode) {
   state.quiz.answerMode = mode;
 
-  document.querySelectorAll('.quiz-answer-mode-button').forEach((button) => {
+  document
+    .querySelectorAll('[data-quiz-answer-mode]')
+    .forEach((button) => {
+      button.classList.toggle(
+        'active-quiz-answer-mode',
+        button.dataset.quizAnswerMode === mode
+      );
+    });
+
+  if (state.quiz.active) {
+    resetQuiz();
+    state.selected = [];
+    safeUpdateResults();
+    renderFretboard();
+  } else {
+    renderQuizChoices();
+  }
+}
+
+function setChordQuizType(type) {
+  state.quiz.chordQuestionType = type;
+
+  document.querySelectorAll('.chord-quiz-type-button').forEach((button) => {
     button.classList.toggle(
-      'active-quiz-answer-mode',
-      button.dataset.quizAnswerMode === mode
+      'active-chord-quiz-type',
+      button.dataset.chordQuizType === type
     );
   });
 
@@ -80,6 +112,96 @@ function setQuizAnswerMode(mode) {
   } else {
     renderQuizChoices();
   }
+}
+
+function syncModuleQuizControls() {
+  const intervalControl = $('quiz-answer-mode-switch');
+  const chordControl = $('chord-quiz-mode-switch');
+
+  intervalControl.hidden = state.module === 'Chords';
+  chordControl.hidden = state.module !== 'Chords';
+}
+
+function populateChordBuildControls() {
+  const rootSelect = $('chord-root-select');
+  const typeSelect = $('chord-type-select');
+
+  rootSelect.innerHTML = '';
+  typeSelect.innerHTML = '';
+
+  for (let midi = 0; midi < 12; midi += 1) {
+    const option = document.createElement('option');
+    option.value = midi;
+    option.textContent = Theory.noteName(midi);
+    rootSelect.appendChild(option);
+  }
+
+  Object.entries(Theory.chordTypes).forEach(([type, chord]) => {
+    const option = document.createElement('option');
+    option.value = type;
+    option.textContent = chord.label;
+    typeSelect.appendChild(option);
+  });
+
+  rootSelect.value = state.chords.rootMidi;
+  typeSelect.value = state.chords.type;
+  $('chord-extension-select').value = state.chords.extension;
+}
+
+function syncChordExploreControls() {
+  const isChordsExplore =
+    state.module === 'Chords' &&
+    state.mode === 'explore';
+
+  const isBuild = state.chords.exploreMode === 'build';
+
+  $('chord-explore-mode-switch').hidden = !isChordsExplore;
+  $('chord-build-controls').hidden = !isChordsExplore || !isBuild;
+  $('quiz-analyze-button').hidden = !isChordsExplore || isBuild;
+
+  document.querySelectorAll('[data-chord-explore-mode]').forEach((button) => {
+    button.classList.toggle(
+      'active-quiz-answer-mode',
+      button.dataset.chordExploreMode === state.chords.exploreMode
+    );
+  });
+}
+
+function getChordExploreTonePitchClasses() {
+  return Theory.chordPitchClasses(
+    state.chords.rootMidi,
+    state.chords.type
+  );
+}
+
+function renderChordExploreResults() {
+  const output = $('result-text');
+
+  if (state.chords.exploreMode === 'build') {
+    const tones = getChordExploreTonePitchClasses()
+      .map((pitchClass) => Theory.noteName(pitchClass))
+      .join(' · ');
+
+    output.innerHTML = `
+      <span class="result-strong">
+        Select a root, quality, and extension.
+      </span>
+      <span class="quiz-feedback">
+        ${Theory.chordName(state.chords.rootMidi, state.chords.type)}
+        · ${tones}
+        · ${Theory.chordFormula(state.chords.type)}
+      </span>
+    `;
+    return;
+  }
+
+  const uniqueNotes = [...new Set(
+    state.chords.selected.map((note) => Theory.noteName(note.midi))
+  )];
+
+  output.textContent = uniqueNotes.length
+    ? `Selected: ${uniqueNotes.join(' · ')}`
+    : 'Select chord tones on the fretboard, then press Analyze.';
 }
 
 function syncQuizButton() {
@@ -106,27 +228,65 @@ function createMultipleChoiceOptions(correctInterval) {
   return options.sort(() => Math.random() - 0.5);
 }
 
+function createChordIdentifyOptions(correctName) {
+  const chordEntries = Object.entries(Theory.chordTypes);
+  const options = new Set([correctName]);
+
+  while (options.size < 4) {
+    const [rootOffset, chord] = chordEntries[
+      Math.floor(Math.random() * chordEntries.length)
+    ];
+
+    const root = Math.floor(Math.random() * 12);
+    options.add(Theory.chordName(root, rootOffset));
+  }
+
+  return [...options].sort(() => Math.random() - 0.5);
+}
+
 function renderQuizChoices() {
   const grid = $('quiz-choice-grid');
+  const analyzeButton = $('quiz-analyze-button');
 
-  const showChoices =
+  const showIntervalChoices =
     state.quiz.active &&
+    state.module === 'Intervals' &&
     state.quiz.answerMode === 'multiple-choice';
+
+  const showChordIdentifyChoices =
+    state.quiz.active &&
+    state.module === 'Chords' &&
+    state.quiz.chordQuestionType === 'identify';
+
+  const showChordBuildAnalyze =
+    state.quiz.active &&
+    state.module === 'Chords' &&
+    state.quiz.chordQuestionType === 'build';
+
+  const showChoices = showIntervalChoices || showChordIdentifyChoices;
 
   grid.hidden = !showChoices;
   grid.innerHTML = '';
+  analyzeButton.hidden = !showChordBuildAnalyze;
+  analyzeButton.disabled = state.quiz.awaitingNextQuestion;
 
   if (!showChoices) return;
 
-  state.quiz.options.forEach((interval) => {
+  state.quiz.options.forEach((option) => {
     const button = document.createElement('button');
 
     button.type = 'button';
     button.className = 'quiz-choice-button';
-    button.dataset.interval = interval;
-    button.textContent = Theory.intervalShort(interval);
-    button.disabled = state.quiz.awaitingNextQuestion;
 
+    if (showIntervalChoices) {
+      button.dataset.interval = option;
+      button.textContent = Theory.intervalShort(option);
+    } else {
+      button.dataset.chordAnswer = option;
+      button.textContent = option;
+    }
+
+    button.disabled = state.quiz.awaitingNextQuestion;
     grid.appendChild(button);
   });
 }
@@ -158,6 +318,8 @@ function resetQuiz() {
   state.quiz.feedback = '';
   state.quiz.answerSelection = null;
   state.quiz.target = null;
+  state.quiz.chordQuestion = null;
+  state.quiz.chordSelection = [];
   state.quiz.options = [];
   state.quiz.correctAnswers = 0;
   state.quiz.incorrectAnswers = 0;
@@ -176,6 +338,11 @@ function resetSelection() {
 
 function safeUpdateResults() {
   const output = $('result-text');
+
+  if (state.module === 'Chords' && state.mode === 'explore') {
+    renderChordExploreResults();
+    return;
+  }
 
   if (state.module !== 'Intervals') {
     output.textContent =
@@ -228,9 +395,37 @@ function updateQuizResults() {
 
   if (!state.quiz.active) {
     const total = state.quiz.totalQuestions;
+    const quizName = state.module === 'Chords' ? 'chord quiz' : 'interval quiz';
 
     output.textContent =
-      `Press Begin to start a ${total}-question interval quiz.`;
+      `Press Begin to start a ${total}-question ${quizName}.`;
+    renderQuizChoices();
+    return;
+  }
+
+  if (state.module === 'Chords') {
+    const chordQuestion = state.quiz.chordQuestion;
+    const chordLabel = chordQuestion ? chordQuestion.name : 'a chord';
+    const isBuild = state.quiz.chordQuestionType === 'build';
+    const promptText = isBuild
+      ? `Build ${chordLabel} by selecting its chord tones.`
+      : `Identify the chord shown on the fretboard.`;
+
+    output.innerHTML = `
+      <span class="result-strong">
+        Question ${state.quiz.questionNumber} of ${state.quiz.totalQuestions}
+        · ${promptText}
+      </span>
+      <span class="quiz-timer">Time: ${state.quiz.timeRemaining}s</span>
+      <span class="quiz-feedback">
+        Score: ${state.quiz.correctAnswers} / ${
+          state.quiz.correctAnswers +
+          state.quiz.incorrectAnswers +
+          state.quiz.timedOutAnswers
+        }
+      </span>
+      ${state.quiz.feedback ? `<span class="quiz-feedback">${state.quiz.feedback}</span>` : ''}
+    `;
     renderQuizChoices();
     return;
   }
@@ -250,7 +445,7 @@ function updateQuizResults() {
         state.quiz.correctAnswers +
         state.quiz.incorrectAnswers +
         state.quiz.timedOutAnswers
-      } answered
+      }
     </span>
     ${state.quiz.feedback ? `<span class="quiz-feedback">${state.quiz.feedback}</span>` : ''}
   `;
@@ -271,8 +466,14 @@ function finishQuestion(outcome) {
     state.quiz.feedback = 'Incorrect.';
   } else {
     state.quiz.timedOutAnswers += 1;
-    state.quiz.feedback =
-      `Time expired. The answer was ${Theory.noteName(state.quiz.targetMidi)}.`;
+
+    if (state.module === 'Chords' && state.quiz.chordQuestion) {
+      state.quiz.feedback =
+        `Time expired. The answer was ${state.quiz.chordQuestion.name}.`;
+    } else {
+      state.quiz.feedback =
+        `Time expired. The answer was ${Theory.noteName(state.quiz.targetMidi)}.`;
+    }
   }
 
   updateQuizResults();
@@ -328,7 +529,51 @@ function getPlayableCells() {
   return cells;
 }
 
+function createChordQuizQuestion() {
+  const playableCells = getPlayableCells();
+  const chordEntries = Object.entries(Theory.chordTypes);
+  const root = Math.floor(Math.random() * 12);
+  const [type] = chordEntries[Math.floor(Math.random() * chordEntries.length)];
+
+  const pitchClasses = Theory.chordPitchClasses(root, type);
+
+  const chordTargetCells = pitchClasses.map((pitchClass) => {
+    const candidates = playableCells.filter(
+      (cell) => Theory.pitchClass(cell.midi) === pitchClass
+    );
+
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  });
+
+  state.quiz.chordQuestion = {
+    rootMidi: root,
+    type,
+    name: Theory.chordName(root, type),
+    pitchClasses,
+    targetCells: chordTargetCells
+  };
+  state.quiz.chordSelection = [];
+  state.quiz.timeRemaining = state.quiz.secondsPerQuestion;
+  state.quiz.feedback = '';
+  state.quiz.answerSelection = null;
+  state.quiz.options =
+    state.quiz.chordQuestionType === 'identify'
+      ? createChordIdentifyOptions(state.quiz.chordQuestion.name)
+      : [];
+  state.quiz.awaitingNextQuestion = false;
+
+  updateQuizResults();
+  renderQuizChoices();
+  renderFretboard();
+  playMidi(state.quiz.chordQuestion.rootMidi);
+}
+
 function createQuizQuestion() {
+  if (state.module === 'Chords') {
+    createChordQuizQuestion();
+    return;
+  }
+
   const playableCells = getPlayableCells();
 
   const candidateIntervals = [
@@ -431,13 +676,27 @@ function advanceQuiz() {
 }
 
 function handleQuizAnswer(stringIndex, fret, midi) {
-  if (
-    !state.quiz.active ||
-    state.quiz.answerMode !== 'draw' ||
-    state.quiz.awaitingNextQuestion
-  ) {
+  if (!state.quiz.active || state.quiz.awaitingNextQuestion) return;
+
+  if (state.module === 'Chords' && state.quiz.chordQuestionType === 'build') {
+    const key = `${stringIndex}:${fret}`;
+    const existingIndex = state.quiz.chordSelection.findIndex(
+      (item) => item.key === key
+    );
+
+    if (existingIndex >= 0) {
+      state.quiz.chordSelection.splice(existingIndex, 1);
+    } else {
+      state.quiz.chordSelection.push({ stringIndex, fret, midi, key });
+    }
+
+    playMidi(midi);
+    safeUpdateResults();
+    renderFretboard();
     return;
   }
+
+  if (state.quiz.answerMode !== 'draw') return;
 
   playMidi(midi);
 
@@ -511,6 +770,35 @@ function renderFretboard() {
 
       const dot = document.createElement('span');
       dot.className = 'note-dot';
+
+      if (
+        state.module === 'Chords' &&
+        state.mode === 'explore' &&
+        state.chords.exploreMode === 'build'
+      ) {
+        const pitchClass = Theory.pitchClass(midi);
+        const rootPitchClass = Theory.pitchClass(state.chords.rootMidi);
+        const chordTones = getChordExploreTonePitchClasses();
+
+        if (chordTones.includes(pitchClass)) {
+          dot.classList.add(
+            pitchClass === rootPitchClass ? 'root' : 'target'
+          );
+
+          if (state.showNotes || state.showIntervals) {
+            const interval =
+              (pitchClass - rootPitchClass + 12) % 12;
+
+            createNoteLabel(
+              dot,
+              state.showNotes ? Theory.noteName(midi) : '',
+              state.showIntervals
+                ? Theory.intervalShort(interval)
+                : ''
+            );
+          }
+        }
+      }
 
       if (state.mode === 'quiz' && state.quiz.active) {
         if (
@@ -604,7 +892,44 @@ function renderFretboard() {
 
       cell.appendChild(dot);
 
+      if (state.module === 'Chords' && state.mode === 'explore') {
+        cell.addEventListener('click', () => {
+          if (state.chords.exploreMode !== 'identify') {
+            playMidi(midi);
+            return;
+          }
+
+          const selectedIndex = state.chords.selected.findIndex(
+            (note) =>
+              note.stringIndex === stringIndex &&
+              note.fret === fret
+          );
+
+          if (selectedIndex >= 0) {
+            state.chords.selected.splice(selectedIndex, 1);
+          } else {
+            state.chords.selected.push({
+              stringIndex,
+              fret,
+              midi
+            });
+          }
+
+          safeUpdateResults();
+          renderFretboard();
+          playMidi(midi);
+        });
+
+        board.appendChild(cell);
+        continue;
+      }
+
       cell.addEventListener('click', () => {
+        if (state.module === 'Chords' && state.mode === 'quiz') {
+          handleQuizAnswer(stringIndex, fret, midi);
+          return;
+        }
+
         if (state.module !== 'Intervals') {
           $('result-text').textContent =
             `${state.module}: selected ${Theory.noteName(midi)} at fret ${fret}.`;
@@ -646,7 +971,38 @@ function setModule(name) {
   $('module-picker-button').setAttribute('aria-expanded', 'false');
 
   resetQuiz();
-  resetSelection();
+  state.selected = [];
+
+  if (name === 'Chords') {
+    state.mode = 'explore';
+    state.chords.exploreMode = 'build';
+    state.chords.rootMidi = 0;
+    state.chords.type = 'major';
+    state.chords.extension = 'none';
+    state.chords.selected = [];
+
+    document.querySelectorAll('.mode-button').forEach((button) => {
+      button.classList.toggle(
+        'active-mode',
+        button.dataset.mode === 'explore'
+      );
+    });
+
+    document.querySelector('.study-workspace')
+      .classList.remove('quiz-mode');
+
+
+  }
+
+  syncModuleQuizControls();
+syncChordExploreControls();
+
+if (name === 'Chords') {
+  populateChordBuildControls();
+}
+
+safeUpdateResults();
+renderFretboard();
 }
 
 function setMode(mode) {
@@ -664,6 +1020,9 @@ function setMode(mode) {
 
   resetQuiz();
   state.selected = [];
+
+  syncModuleQuizControls();
+  syncChordExploreControls();
 
   safeUpdateResults();
   renderFretboard();
@@ -729,29 +1088,71 @@ document.querySelectorAll('.mode-button').forEach((button) => {
   });
 });
 
-document.querySelectorAll('.quiz-answer-mode-button').forEach((button) => {
+document.querySelectorAll('[data-quiz-answer-mode]').forEach((button) => {
   button.addEventListener('click', () => {
     setQuizAnswerMode(button.dataset.quizAnswerMode);
   });
 });
 
+document.querySelectorAll('.chord-quiz-type-button').forEach((button) => {
+  button.addEventListener('click', () => {
+    setChordQuizType(button.dataset.chordQuizType);
+  });
+});
+
+document.querySelectorAll('[data-chord-explore-mode]').forEach((button) => {
+  button.addEventListener('click', () => {
+    state.chords.exploreMode = button.dataset.chordExploreMode;
+    state.chords.selected = [];
+
+    syncChordExploreControls();
+    safeUpdateResults();
+    renderFretboard();
+  });
+});
+
+$('chord-root-select').addEventListener('change', (event) => {
+  state.chords.rootMidi = Number(event.target.value);
+  safeUpdateResults();
+  renderFretboard();
+});
+
+$('chord-type-select').addEventListener('change', (event) => {
+  state.chords.type = event.target.value;
+  safeUpdateResults();
+  renderFretboard();
+});
+
+$('chord-extension-select').addEventListener('change', (event) => {
+  state.chords.extension = event.target.value;
+  safeUpdateResults();
+  renderFretboard();
+});
+
 $('quiz-choice-grid').addEventListener('click', (event) => {
   const button = event.target.closest('.quiz-choice-button');
 
-  if (
-    !button ||
-    !state.quiz.active ||
-    state.quiz.answerMode !== 'multiple-choice' ||
-    state.quiz.awaitingNextQuestion
-  ) {
+  if (!button || !state.quiz.active || state.quiz.awaitingNextQuestion) {
     return;
   }
 
-  const selectedInterval = Number(button.dataset.interval);
+  if (state.module === 'Intervals') {
+    if (state.quiz.answerMode !== 'multiple-choice') return;
 
-  finishQuestion(
-    selectedInterval === state.quiz.interval ? 'correct' : 'incorrect'
-  );
+    const selectedInterval = Number(button.dataset.interval);
+
+    finishQuestion(
+      selectedInterval === state.quiz.interval ? 'correct' : 'incorrect'
+    );
+    return;
+  }
+
+  if (state.module === 'Chords' && state.quiz.chordQuestionType === 'identify') {
+    const selectedChord = button.dataset.chordAnswer;
+    finishQuestion(
+      selectedChord === state.quiz.chordQuestion.name ? 'correct' : 'incorrect'
+    );
+  }
 });
 
 $('quiz-question-count').addEventListener('change', (event) => {
@@ -855,6 +1256,57 @@ $('quiz-begin-button').addEventListener('click', () => {
   }
 
   startQuiz();
+});
+
+$('quiz-analyze-button').addEventListener('click', () => {
+  if (
+    state.module === 'Chords' &&
+    state.mode === 'explore' &&
+    state.chords.exploreMode === 'identify'
+  ) {
+    const result = Theory.identifyChord(
+      state.chords.selected.map((note) => note.midi)
+    );
+
+    const output = $('result-text');
+
+    if (!result) {
+      output.textContent =
+        'No exact V1 chord match. Select at least three unique chord tones.';
+      return;
+    }
+
+    output.innerHTML = `
+      <span class="result-strong">${result.name}</span>
+      <span class="quiz-feedback">
+        ${result.notes.join(' · ')} · ${result.formula}
+      </span>
+    `;
+    return;
+  }
+
+  if (
+    !state.quiz.active ||
+    state.quiz.awaitingNextQuestion ||
+    state.module !== 'Chords' ||
+    state.quiz.chordQuestionType !== 'build'
+  ) {
+    return;
+  }
+
+  const selectedPitchClasses = [
+    ...new Set(state.quiz.chordSelection.map((note) => Theory.pitchClass(note.midi)))
+  ].sort((a, b) => a - b);
+
+  const expectedPitchClasses = [...state.quiz.chordQuestion.pitchClasses].sort(
+    (a, b) => a - b
+  );
+
+  const correct =
+    selectedPitchClasses.length === expectedPitchClasses.length &&
+    selectedPitchClasses.every((value, index) => value === expectedPitchClasses[index]);
+
+  finishQuestion(correct ? 'correct' : 'incorrect');
 });
 
 function openSettings() {

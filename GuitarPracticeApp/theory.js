@@ -66,10 +66,105 @@ window.Theory = (() => {
     return `${info.long} (ascending)`;
   }
 
+  const CHORD_TYPES = {
+    major: { label: 'Major', symbol: '', intervals: [0, 4, 7] },
+    minor: { label: 'Minor', symbol: 'm', intervals: [0, 3, 7] },
+    diminished: { label: 'Diminished', symbol: 'dim', intervals: [0, 3, 6] },
+    augmented: { label: 'Augmented', symbol: 'aug', intervals: [0, 4, 8] },
+    sus2: { label: 'Sus2', symbol: 'sus2', intervals: [0, 2, 7] },
+    sus4: { label: 'Sus4', symbol: 'sus4', intervals: [0, 5, 7] },
+    dominant7: { label: 'Dominant 7', symbol: '7', intervals: [0, 4, 7, 10] },
+    major7: { label: 'Major 7', symbol: 'maj7', intervals: [0, 4, 7, 11] },
+    minor7: { label: 'Minor 7', symbol: 'm7', intervals: [0, 3, 7, 10] }
+  };
+
+  function pitchClass(midi) {
+    return ((midi % 12) + 12) % 12;
+  }
+
+  function chordInfo(type) {
+    return CHORD_TYPES[type] || null;
+  }
+
+  function chordPitchClasses(rootMidi, type) {
+    const chord = chordInfo(type);
+
+    if (!chord) return [];
+
+    return chord.intervals.map((interval) => pitchClass(rootMidi + interval));
+  }
+
+  function chordName(rootMidi, type) {
+    const chord = chordInfo(type);
+
+    if (!chord) return '';
+
+    return `${noteName(rootMidi)}${chord.symbol}`;
+  }
+
+  function chordFormula(type) {
+    const chord = chordInfo(type);
+
+    if (!chord) return '';
+
+    const labels = {
+      0: '1',
+      2: '2',
+      3: '♭3',
+      4: '3',
+      5: '4',
+      6: '♭5',
+      7: '5',
+      8: '♯5',
+      10: '♭7',
+      11: '7'
+    };
+
+    return chord.intervals.map((interval) => labels[interval] || `${interval}`).join(' · ');
+  }
+
+  function identifyChord(selectedMidis) {
+    const pitchClasses = [...new Set(selectedMidis.map(pitchClass))];
+
+    if (pitchClasses.length < 3) return null;
+
+    for (let root = 0; root < 12; root += 1) {
+      for (const [type, chord] of Object.entries(CHORD_TYPES)) {
+        const expected = chord.intervals
+          .map((interval) => pitchClass(root + interval))
+          .sort((a, b) => a - b);
+
+        const actual = [...pitchClasses].sort((a, b) => a - b);
+
+        if (
+          expected.length === actual.length &&
+          expected.every((value, index) => value === actual[index])
+        ) {
+          return {
+            rootMidi: root,
+            type,
+            name: chordName(root, type),
+            notes: expected.map(noteName),
+            formula: chordFormula(type)
+          };
+        }
+      }
+    }
+
+    return null;
+  }
+
   return {
     noteName,
     intervalInfo,
     intervalShort,
-    intervalLong
+    intervalLong,
+    pitchClass,
+    chordInfo,
+    chordPitchClasses,
+    chordName,
+    chordFormula,
+    identifyChord,
+    chordTypes: CHORD_TYPES
   };
 })();

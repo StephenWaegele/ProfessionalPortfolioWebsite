@@ -117,6 +117,29 @@
                   Draw
                 </button>
               </div>
+
+              <div
+                id="chord-explore-mode-switch"
+                class="quiz-answer-mode-switch"
+                role="group"
+                aria-label="Chord explore mode"
+                hidden
+              >
+                <button
+                  class="quiz-answer-mode-button active-quiz-answer-mode"
+                  type="button"
+                  data-chord-explore-mode="build"
+                >
+                  Build
+                </button>
+                <button
+                  class="quiz-answer-mode-button"
+                  type="button"
+                  data-chord-explore-mode="identify"
+                >
+                  Identify
+                </button>
+              </div>
             </div>
           </div>
           <div id="result-content" class="result-content">
@@ -133,7 +156,23 @@
 
           <div id="quiz-controls" class="quiz-controls" hidden>
             <button id="quiz-begin-button" class="quiz-begin" type="button">Begin</button>
+            <button id="quiz-analyze-button" class="quiz-analyze" type="button" hidden>Analyze</button>
             <span id="quiz-status">10 questions · 10 seconds</span>
+          </div>
+
+          <div id="chord-build-controls" class="chord-build-controls" hidden>
+            <select id="chord-root-select" aria-label="Chord root"></select>
+            <select id="chord-type-select" aria-label="Chord quality"></select>
+            <select id="chord-extension-select" aria-label="Chord extension">
+              <option value="none">None</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="maj7">maj7</option>
+              <option value="add9">add9</option>
+              <option value="9">9</option>
+              <option value="11">11</option>
+              <option value="13">13</option>
+            </select>
           </div>
         </section>
 
