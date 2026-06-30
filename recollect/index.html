@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7f5ef" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>Recollect</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <button id="home-button" class="brand-button" type="button" aria-label="Return to decks">Recollect</button>
+      <button id="new-deck-button" class="icon-button primary-icon" type="button" aria-label="Create a new deck">+</button>
+    </header>
+
+    <main>
+      <section id="home-view" class="view active-view" aria-labelledby="home-heading">
+        <div class="hero-row">
+          <div>
+            <p class="eyebrow">YOUR LIBRARY</p>
+            <h1 id="home-heading">Decks</h1>
+          </div>
+          <span id="deck-total" class="deck-total">0 decks</span>
+        </div>
+
+        <label class="search-field" for="deck-search">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input id="deck-search" type="search" placeholder="Search decks or tags" autocomplete="off" />
+        </label>
+
+        <div id="deck-list" class="deck-list" aria-live="polite"></div>
+
+        <div id="empty-library" class="empty-state hidden">
+          <div class="empty-mark">R</div>
+          <h2>Your library is ready.</h2>
+          <p>Create a deck, add cards, and study with a focused flashcard or matching view.</p>
+          <button id="empty-new-deck" class="button primary" type="button">Create your first deck</button>
+        </div>
+      </section>
+
+      <section id="deck-view" class="view" aria-labelledby="deck-title">
+        <button id="back-to-home" class="back-link" type="button">← All decks</button>
+        <div class="deck-heading-row">
+          <div>
+            <p class="eyebrow">DECK</p>
+            <h1 id="deck-title">Untitled deck</h1>
+            <div id="deck-tags" class="tag-row"></div>
+          </div>
+          <button id="deck-menu-button" class="icon-button" type="button" aria-label="Deck options">•••</button>
+        </div>
+
+        <div class="deck-actions">
+          <button id="study-deck-button" class="button primary" type="button">Study cards</button>
+          <button id="matching-deck-button" class="button secondary" type="button">Matching</button>
+        </div>
+
+        <div class="section-row">
+          <div>
+            <p class="eyebrow">CARDS</p>
+            <h2 id="card-count-label">0 cards</h2>
+          </div>
+          <button id="new-card-button" class="button compact" type="button">+ Add card</button>
+        </div>
+
+        <div id="card-list" class="card-list"></div>
+        <div id="empty-deck" class="empty-state compact-empty hidden">
+          <h2>Nothing here yet.</h2>
+          <p>Add a card with text, an image, or both.</p>
+        </div>
+      </section>
+
+      <section id="study-view" class="view" aria-labelledby="study-deck-name">
+        <div class="mode-topbar">
+          <button id="exit-study" class="back-link" type="button">← Deck</button>
+          <span id="study-progress" class="progress-label">1 / 1</span>
+        </div>
+        <div class="study-heading">
+          <p class="eyebrow">FLASHCARDS</p>
+          <h1 id="study-deck-name">Deck</h1>
+        </div>
+
+        <div id="flashcard" class="flashcard" role="button" tabindex="0" aria-label="Flip card">
+          <div class="flashcard-inner">
+            <article class="flashcard-face flashcard-front">
+              <p class="card-side-label" id="front-label">FRONT</p>
+              <div id="flashcard-front-content" class="flashcard-content"></div>
+              <p class="tap-hint">Tap to reveal</p>
+            </article>
+            <article class="flashcard-face flashcard-back">
+              <p class="card-side-label" id="back-label">BACK</p>
+              <div id="flashcard-back-content" class="flashcard-content"></div>
+              <p class="tap-hint">Tap to return</p>
+            </article>
+          </div>
+        </div>
+
+        <div class="study-controls">
+          <button id="previous-card" class="button secondary" type="button">Previous</button>
+          <button id="next-card" class="button primary" type="button">Next</button>
+        </div>
+        <label class="direction-toggle" for="study-direction">
+          <span>Study direction</span>
+          <select id="study-direction">
+            <option value="front-back">Front → back</option>
+            <option value="back-front">Back → front</option>
+          </select>
+        </label>
+      </section>
+
+      <section id="matching-view" class="view" aria-labelledby="matching-deck-name">
+        <div class="mode-topbar">
+          <button id="exit-matching" class="back-link" type="button">← Deck</button>
+          <span id="matching-progress" class="progress-label">0 matched</span>
+        </div>
+        <div class="study-heading">
+          <p class="eyebrow">MATCHING</p>
+          <h1 id="matching-deck-name">Deck</h1>
+          <p class="mode-intro">Choose a prompt, then choose its match. The whole deck stays in play.</p>
+        </div>
+        <div id="matching-status" class="matching-status" aria-live="polite"></div>
+        <div class="matching-layout">
+          <section>
+            <p class="matching-label">PROMPTS</p>
+            <div id="matching-left" class="matching-column"></div>
+          </section>
+          <section>
+            <p class="matching-label">MATCHES</p>
+            <div id="matching-right" class="matching-column"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="deck-dialog" class="modal">
+    <form id="deck-form" class="modal-card" method="dialog">
+      <div class="modal-heading-row">
+        <div>
+          <p class="eyebrow">DECK</p>
+          <h2 id="deck-dialog-title">New deck</h2>
+        </div>
+        <button class="icon-button close-dialog" type="button" data-close="deck-dialog" aria-label="Close">×</button>
+      </div>
+      <label class="field-label">Deck title
+        <input id="deck-name-input" maxlength="80" required placeholder="e.g. Anatomy notes" />
+      </label>
+      <label class="field-label">Tags <span class="field-note">Separate with commas</span>
+        <input id="deck-tags-input" maxlength="160" placeholder="e.g. school, science" />
+      </label>
+      <div class="modal-actions">
+        <button class="button secondary" type="button" data-close="deck-dialog">Cancel</button>
+        <button class="button primary" type="submit">Save deck</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="card-dialog" class="modal">
+    <form id="card-form" class="modal-card card-modal-card" method="dialog">
+      <div class="modal-heading-row">
+        <div>
+          <p class="eyebrow">CARD</p>
+          <h2 id="card-dialog-title">New card</h2>
+        </div>
+        <button class="icon-button close-dialog" type="button" data-close="card-dialog" aria-label="Close">×</button>
+      </div>
+      <p class="modal-copy">Each side can include text, an image, or both.</p>
+      <div class="card-editor-grid">
+        <section class="card-side-editor">
+          <div class="editor-side-heading"><span>Front</span><button class="clear-side-button" type="button" data-clear-side="front">Clear</button></div>
+          <textarea id="front-text-input" maxlength="1200" placeholder="Prompt or term"></textarea>
+          <input id="front-image-input" class="file-input" type="file" accept="image/*" />
+          <button class="image-picker-button" type="button" data-open-file="front-image-input">Add image</button>
+          <div id="front-image-preview" class="image-preview hidden"></div>
+        </section>
+        <section class="card-side-editor">
+          <div class="editor-side-heading"><span>Back</span><button class="clear-side-button" type="button" data-clear-side="back">Clear</button></div>
+          <textarea id="back-text-input" maxlength="1200" placeholder="Answer or definition"></textarea>
+          <input id="back-image-input" class="file-input" type="file" accept="image/*" />
+          <button class="image-picker-button" type="button" data-open-file="back-image-input">Add image</button>
+          <div id="back-image-preview" class="image-preview hidden"></div>
+        </section>
+      </div>
+      <p id="card-form-error" class="form-error" aria-live="polite"></p>
+      <div class="modal-actions">
+        <button class="button secondary" type="button" data-close="card-dialog">Cancel</button>
+        <button class="button primary" type="submit">Save card</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="crop-dialog" class="modal">
+    <form id="crop-form" class="modal-card crop-modal-card" method="dialog">
+      <div class="modal-heading-row">
+        <div>
+          <p class="eyebrow">IMAGE</p>
+          <h2>Square crop</h2>
+        </div>
+        <button class="icon-button close-dialog" type="button" data-close="crop-dialog" aria-label="Close">×</button>
+      </div>
+      <p class="modal-copy">Drag the image to position it. Use the slider to zoom.</p>
+      <div id="crop-stage" class="crop-stage"><img id="crop-image" alt="Crop preview" /></div>
+      <label class="crop-range-label" for="crop-zoom">Zoom
+        <input id="crop-zoom" type="range" min="1" max="3" step="0.01" value="1" />
+      </label>
+      <div class="modal-actions">
+        <button class="button secondary" type="button" data-close="crop-dialog">Cancel</button>
+        <button class="button primary" type="submit">Use image</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="confirm-dialog" class="modal">
+    <form id="confirm-form" class="modal-card small-modal-card" method="dialog">
+      <p class="eyebrow">CONFIRM</p>
+      <h2 id="confirm-title">Delete item?</h2>
+      <p id="confirm-copy" class="modal-copy"></p>
+      <div class="modal-actions">
+        <button class="button secondary" type="button" data-close="confirm-dialog">Cancel</button>
+        <button id="confirm-action" class="button danger" type="submit">Delete</button>
+      </div>
+    </form>
+  </dialog>
+
+  <template id="deck-template">
+    <article class="deck-item">
+      <button class="deck-open-button" type="button">
+        <span class="deck-item-main">
+          <span class="deck-item-title"></span>
+          <span class="deck-item-meta"></span>
+          <span class="deck-item-tags tag-row"></span>
+        </span>
+        <span class="deck-chevron">›</span>
+      </button>
+    </article>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
