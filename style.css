@@ -169,6 +169,24 @@ section p {
   font-size: 1.25rem;
 }
 
+.project-title {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.5rem;
+}
+
+.project-title h3 {
+  margin-bottom: 0;
+}
+
+.project-icon {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
 .project-card p {
   color: rgba(255, 255, 255, 0.78);
 }
